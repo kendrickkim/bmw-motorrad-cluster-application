@@ -1,6 +1,7 @@
 package com.dooderge.bmw.motorrad.cluster
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
@@ -14,7 +15,6 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.graphics.PixelFormat
-import android.graphics.Typeface
 import android.hardware.input.InputManager
 import android.os.Binder
 import android.os.Build
@@ -35,10 +35,7 @@ import androidx.compose.runtime.MutableState
 import androidx.core.app.NotificationCompat
 import java.util.Timer
 import java.util.TimerTask
-import android.widget.Toast
-import androidx.compose.ui.Modifier
 import androidx.core.content.res.ResourcesCompat
-import androidx.core.view.marginTop
 
 class BleService : Service() {
     companion object {
@@ -84,6 +81,7 @@ class BleService : Service() {
         connectToDevice()
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     fun makeOverLaywindow() {
         if (windowManager != null) return
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
@@ -115,22 +113,40 @@ class BleService : Service() {
             )
         }
         var mFont =
-            ResourcesCompat.getFont(applicationContext, R.font.f_e1234_i)
+            ResourcesCompat.getFont(applicationContext, R.font.robot_mono_bold_italic)
         val speedText = TextView(this).apply {
-            text = "000"
+            text = "0"
             setTextColor(Color.WHITE)
-            textSize = dpToSp(20).toFloat()
+            textSize = dpToSp(30).toFloat()
             typeface = mFont
-            gravity = Gravity.CENTER or Gravity.RIGHT
+            gravity = Gravity.TOP or Gravity.RIGHT
             textAlignment = View.TEXT_ALIGNMENT_GRAVITY
             includeFontPadding = false
             layoutParams = LinearLayout.LayoutParams(
                 dpToPx(130), dpToPx(70)
             )
-            setPadding(0, dpToPx(5), 30, 0)
+            setPadding(0, dpToPx(-10), 30, 0)
         }
         layout.addView(speedText)
         layout.addView(gearImage)
+
+        var last_touch_millis: Long = 0;
+
+        gearImage?.setOnTouchListener(object : View.OnTouchListener {
+            override fun onTouch(v: View?, event: MotionEvent): Boolean {
+                if (event.action == MotionEvent.ACTION_DOWN) {
+                    val current_touch_millis = System.currentTimeMillis()
+                    if (current_touch_millis - last_touch_millis < 300) {
+                        Log.d("BleService", "onTouch: ${event.action}")
+                        return true
+                    }
+                    last_touch_millis = current_touch_millis
+
+                }
+                return false
+            }
+        })
+
         overlayView = layout
 
         overlayView?.setOnTouchListener(object : View.OnTouchListener {

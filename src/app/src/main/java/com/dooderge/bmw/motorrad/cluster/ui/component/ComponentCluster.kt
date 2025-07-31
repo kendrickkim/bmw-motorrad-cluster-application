@@ -66,16 +66,9 @@ fun ComponentCluster(
     Box(
         modifier = Modifier
             .fillMaxSize(),
-        contentAlignment = Alignment.Center
+        contentAlignment = Alignment.TopCenter,
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize(),
-            contentAlignment = Alignment.TopCenter
-        )
-        {
-            ComponentSpeedMeter(carStatus.speed.value)
-        }
+        ComponentSpeedMeter(carStatus.speed.value)
     }
     Box(
         modifier = Modifier.fillMaxSize(),
@@ -154,7 +147,7 @@ fun RpmGuage(
             RPMValue().set(6, 0.48f, Color(0xff828be0)),
             RPMValue().set(8, 0.59f, Color(0xffae7ccf)),
             RPMValue().set(10, 0.64f, Color(0xffd85880)),
-            RPMValue().set(12, 0.66f, Color(0xffff3838)),
+            RPMValue().set(12, 0.65f, Color(0xffff3838)),
 
             )
     }

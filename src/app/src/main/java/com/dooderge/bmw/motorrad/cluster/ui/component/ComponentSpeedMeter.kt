@@ -1,12 +1,9 @@
 package com.dooderge.bmw.motorrad.cluster.ui.component
 
-import android.util.Log
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
@@ -16,17 +13,13 @@ import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.DrawStyle
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.TextUnit
-import androidx.compose.ui.unit.TextUnitType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.dooderge.bmw.motorrad.cluster.R
@@ -46,65 +39,60 @@ fun Modifier.textBrush(brush: Brush) = this
 fun ComponentSpeedMeter(speed: Int = 0) {
     Row(
         modifier = Modifier
-            .width(350.dp),
-//            .border(BorderStroke(1.dp, Color.White)),
+            .width(400.dp),
         verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.End
+        horizontalArrangement = Arrangement.Center
     )
+
     {
+        var str_speed = speed.toString();
+        if (speed < 10) {
+            str_speed = "  $speed";
+        } else if (speed < 100) {
+            str_speed = " $speed";
+        }
+
+//        str_speed = "888"
+
         Box(
-            modifier = Modifier.width(250.dp),
+            modifier = Modifier
+                .height(130.dp)
+                .offset(
+                    y = -30.dp
+                )
+
         )
         {
             Text(
-                text = "000",
-                fontSize = 100.sp,
-                fontWeight = FontWeight.Bold, fontStyle = FontStyle.Italic,
-                fontFamily = FontFamily(Font(R.font.f_e1234_i)),
-                textAlign = TextAlign.Right,
-                color = Color(0xFF333333),
-
-                )
-
-            var str_speed = speed.toString();
-            if (speed < 10) {
-                str_speed = "  $speed";
-            } else if (speed < 100) {
-                str_speed = " $speed";
-            }
-
-//            str_speed = "888"
-
-//            Log.d("ComponentSpeedMeter", "Speed: $str_speed")
-
-            Text(
                 text = "${str_speed}",
-                fontSize = 100.sp,
-                fontWeight = FontWeight.Bold, fontStyle = FontStyle.Italic,
-                fontFamily = FontFamily(Font(R.font.f_e1234_i)),
                 textAlign = TextAlign.Right,
-//                style = TextStyle.Default.copy(
-//                    drawStyle = Stroke(width = 5f)
-//                ),
+                style = TextStyle.Default.copy(
+                    fontSize = 110.sp,
+                    fontFamily = FontFamily(Font(R.font.robot_mono_bold_italic)),
+                    platformStyle = PlatformTextStyle(includeFontPadding = false),
+                ),
                 modifier = Modifier.textBrush(
                     Brush.verticalGradient(
                         listOf(
-                            Color.Red,
-                            Color.Yellow
+//                            Color.Red,
+//                            Color.White,
+//                            Color.Yellow
+                            Color.Gray,
+                            Color.White,
+                            Color.Gray
                         )
                     )
                 )
 
             )
-
-
         }
         Text(
             text = " km/h",
             fontSize = 25.sp,
             fontWeight = FontWeight.Bold,
-
-//            fontFamily = FontFamily(Font(R.font.wdxl))
+            textAlign = TextAlign.Start
         )
+
+
     }
 }

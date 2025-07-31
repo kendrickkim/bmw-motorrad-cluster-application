@@ -71,7 +71,8 @@ fun MainScreen(
     carStatus: CarStatus
 ) {
     var str_date_time = remember {
-        mutableStateOf("2025-06-13 00:00:00")
+//        mutableStateOf("2025-06-13 00:00:00")
+        mutableStateOf("00:00:00")
     }
 
     val str_wifi_network = remember {
@@ -88,7 +89,8 @@ fun MainScreen(
         timer_date_time.schedule(object : TimerTask() {
             override fun run() {
                 str_date_time.value = java.text.SimpleDateFormat(
-                    "yyyy-MM-dd HH:mm:ss",
+//                    "yyyy-MM-dd HH:mm:ss",
+                    "HH:mm:ss",
                     java.util.Locale.getDefault()
                 ).format(java.util.Date())
 
@@ -115,26 +117,32 @@ fun MainScreen(
                 .background(Color.Black)
         )
         {
-            Row(
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(35.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+//                horizontalArrangement = Arrangement.SpaceBetween,
+//                verticalAlignment = Alignment.CenterVertically
             )
             {
                 val wifi_name = str_wifi_network.value.replace("\"", "")
                 Text(
-                    text = "  ${wifi_name} / ${str_bt_device_name.value}",
+                    text = "       ${wifi_name} / ${str_bt_device_name.value}",
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
                 )
-                Text(
-                    text = "${str_date_time.value} ",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = FontFamily(Font(R.font.robot_mono))
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
                 )
+                {
+                    Text(
+                        text = "${str_date_time.value} ",
+                        fontSize = 28.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        fontFamily = FontFamily(Font(R.font.robot_mono))
+                    )
+                }
             }
 
 
@@ -159,7 +167,7 @@ fun MainScreen(
                         modifier = Modifier
                             .size(128.dp, 128.dp)
                             .clip(RoundedCornerShape(15.dp))
-                            .background(Color.White)
+                            .background(Color.DarkGray)
                             .clickable {
                                 onAndroidAutoClick()
                             }
@@ -191,7 +199,7 @@ fun MainScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(8.dp),
+                        .padding(start = 8.dp, end = 8.dp, bottom = 8.dp, top = 0.dp),
                     contentAlignment = Alignment.BottomCenter
                 ) {
                     ComponentCluster(context = context, carStatus = carStatus)

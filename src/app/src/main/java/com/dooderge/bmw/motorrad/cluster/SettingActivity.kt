@@ -153,7 +153,7 @@ class SettingActivity : ComponentActivity() {
                                     containerColor = Color.White,
                                     contentColor = Color.Black
                                 ),
-                                border = BorderStroke(2.dp, Color.Gray)
+                                border = BorderStroke(1.dp, Color.Gray)
                             ) {
                                 Text(
                                     text = "선택",
