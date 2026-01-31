@@ -26,7 +26,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -53,7 +52,6 @@ import com.dooderge.bmw.motorrad.cluster.R
 import com.dooderge.bmw.motorrad.cluster.SettingPreference
 import com.dooderge.bmw.motorrad.cluster.ui.component.ComponentCluster
 import com.dooderge.bmw.motorrad.cluster.ui.component.ComponentGearIndicator
-import com.dooderge.bmw.motorrad.cluster.viewmodel.ClusterData
 import com.dooderge.bmw.motorrad.cluster.viewmodel.MainViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -71,41 +69,47 @@ fun MainScreen(
     context: Context,
     carStatus: CarStatus
 ) {
-    var str_date_time = remember {
-//        mutableStateOf("2025-06-13 00:00:00")
+    val strMutTime = remember {
         mutableStateOf("00:00:00")
     }
 
-    val str_wifi_network = remember {
+    val strMutDate = remember {
+        mutableStateOf("2026-01-01")
+    }
+
+    val strMutWifiNetworkName = remember {
         mutableStateOf("Unknown")
     }
 
-    var str_bt_device_name = remember {
+    val strMutBtDeviceName = remember {
         mutableStateOf("NONE")
     }
 
     LaunchedEffect(Unit) {
-        val timer_date_time = Timer()
+        val timerRefreshDateTime = Timer()
 
-        timer_date_time.schedule(object : TimerTask() {
+        timerRefreshDateTime.schedule(object : TimerTask() {  // 시간 / 날짜 리프레시 타이머
             override fun run() {
-                str_date_time.value = java.text.SimpleDateFormat(
-//                    "yyyy-MM-dd HH:mm:ss",
+                strMutTime.value = java.text.SimpleDateFormat(
                     "HH:mm:ss",
+                    java.util.Locale.getDefault()
+                ).format(java.util.Date())
+
+                strMutDate.value = java.text.SimpleDateFormat(
+                    "yyyy-MM-dd",
                     java.util.Locale.getDefault()
                 ).format(java.util.Date())
 
                 val wifiManager = context.getSystemService(Context.WIFI_SERVICE) as WifiManager
                 val wifiInfo = wifiManager.connectionInfo
-                str_wifi_network.value = wifiInfo.ssid
-                var bt_name: String? = SettingPreference.getDeviceName(context)
-                if (bt_name == null || bt_name.isEmpty()) bt_name == "NONE"
-                str_bt_device_name.value = bt_name.toString()
-
+                strMutWifiNetworkName.value = wifiInfo.ssid
+                val btDeviceName: String? = SettingPreference.getDeviceName(context)
+                if (btDeviceName == null || btDeviceName.isEmpty()) btDeviceName == "NONE"
+                strMutBtDeviceName.value = btDeviceName.toString()
             }
         }, 0, 100)
     }
-//    val clusterData = uiState.clusterData
+
     CompositionLocalProvider(
         LocalDensity provides Density(
             density = LocalDensity.current.density,
@@ -126,9 +130,9 @@ fun MainScreen(
 //                verticalAlignment = Alignment.CenterVertically
             )
             {
-                val wifi_name = str_wifi_network.value.replace("\"", "")
+                val wifi_name = strMutWifiNetworkName.value.replace("\"", "")
                 Text(
-                    text = "       ${wifi_name} / ${str_bt_device_name.value}",
+                    text = "       ${wifi_name} / ${strMutBtDeviceName.value}",
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
                 )
@@ -138,7 +142,7 @@ fun MainScreen(
                 )
                 {
                     Text(
-                        text = "${str_date_time.value} ",
+                        text = "${strMutTime.value} ",
                         fontSize = 28.sp,
                         fontWeight = FontWeight.ExtraBold,
                         fontFamily = FontFamily(Font(R.font.robot_mono))
