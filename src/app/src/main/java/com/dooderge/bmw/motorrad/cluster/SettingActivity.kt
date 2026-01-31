@@ -1,5 +1,6 @@
 package com.dooderge.bmw.motorrad.cluster
 
+import android.R
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
@@ -12,6 +13,7 @@ import android.view.View
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -22,6 +24,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
@@ -48,29 +51,7 @@ class SettingActivity : ComponentActivity() {
             val pairedDevices = remember {
                 bluetoothAdapter?.bondedDevices?.toList() ?: emptyList()
             }
-//            val discoveredDevices = remember { mutableStateListOf<BluetoothDevice>() }
-//            val receiver = rememberUpdatedState(newValue = object :
-//                BroadcastReceiver() {
-//                override fun onReceive(context: Context?, intent: Intent?) {
-//                    val action: String? = intent?.action
-//                    if (BluetoothDevice.ACTION_FOUND == action) {
-//                        val device: BluetoothDevice? =
-//                            intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
-//                        device?.let {
-//                            var containe_same_device = false;
-//                            discoveredDevices.forEach {
-//                                if (it.address == device.address) {
-//                                    containe_same_device = true
-//                                    return@forEach
-//                                }
-//                            }
-//                            if (!containe_same_device) {
-//                                discoveredDevices.add(device)
-//                            }
-//                        }
-//                    }
-//                }
-//            })
+            var txtSpeedFactor  by remember { mutableStateOf(SettingPreference.getWheelRpmToSpeedFactor(this).toString()) }
 
 
             LaunchedEffect(Unit) {
@@ -101,7 +82,7 @@ class SettingActivity : ComponentActivity() {
                         horizontalAlignment = Alignment.Start
                     ) {
                         Text(
-                            text = "Wonder wheel 장치 설정",
+                            text = "Settings",
                             fontSize = 25.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color.White,
@@ -114,6 +95,19 @@ class SettingActivity : ComponentActivity() {
                                 .padding(start = 8.dp, end = 8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
+                            Box(modifier = Modifier
+                                    .width(200.dp)
+                                    .height(80.dp)
+                                    .padding(8.dp),
+                                contentAlignment = Alignment.CenterStart
+                            )
+                            {
+                                Text("Selected Device",
+                                    fontSize = 20.sp,
+                                    color = Color.White,
+                                    modifier = Modifier.padding(end = 8.dp)
+                                )
+                            }
                             Box(
                                 modifier = Modifier
                                     .weight(1f)
@@ -134,16 +128,7 @@ class SettingActivity : ComponentActivity() {
                             Button(
                                 onClick = {
                                     // 블루투스 장치 검색 결과 수신
-
                                     showDialog = true
-
-//                                    var intent_bt_action_found =
-//                                        IntentFilter(BluetoothDevice.ACTION_FOUND)
-//
-//                                    registerReceiver(receiver.value, intent_bt_action_found)
-//
-//                                    // 블루투스 장치 검색 시작
-//                                    bluetoothAdapter?.startDiscovery()
 
                                 },
                                 modifier = Modifier
@@ -161,25 +146,49 @@ class SettingActivity : ComponentActivity() {
                                     fontWeight = FontWeight.Medium, color = Color.Black
                                 )
                             }
-                            Spacer(modifier = Modifier.width(16.dp))
-                            Button(
-                                onClick = {
-                                    selectedDeviceName = ""
-                                    selectedDeviceAddress = ""
-                                },
+                        }
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 8.dp, end = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(modifier = Modifier
+                                .width(200.dp)
+                                .height(80.dp)
+                                .padding(8.dp),
+                                contentAlignment = Alignment.CenterStart
+                            )
+                            {
+                                Text("Speed Factor",
+                                    fontSize = 20.sp,
+                                    color = Color.White,
+                                    modifier = Modifier.padding(end = 8.dp)
+                                )
+                            }
+                            Box(
                                 modifier = Modifier
-                                    .width(120.dp)
-                                    .height(56.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color.White,
-                                    contentColor = Color.Black
-                                ),
-                                border = BorderStroke(2.dp, Color.Gray)
+                                    .width(200.dp)
+                                    .height(80.dp)
+                                    .padding(8.dp)
+                                    .border(2.dp, Color.Gray),
+
+                                contentAlignment = Alignment.Center
                             ) {
-                                Text(
-                                    text = "초기화",
-                                    fontSize = 15.sp,
-                                    fontWeight = FontWeight.Medium, color = Color.Black
+                                TextField(
+                                    value = txtSpeedFactor.toString(),
+                                    colors = TextFieldDefaults.colors(
+                                        focusedContainerColor = Color.Black,
+                                        unfocusedContainerColor = Color.Black
+                                    ),
+                                    textStyle = TextStyle(
+                                        fontSize = 28.sp,
+                                        color = Color.White,
+                                        fontWeight = FontWeight.Medium
+                                    ),
+                                    onValueChange = {
+                                        txtSpeedFactor = it
+                                    },
                                 )
                             }
                         }
@@ -237,29 +246,48 @@ class SettingActivity : ComponentActivity() {
                     {
                         Row()
                         {
-                            Button(modifier = Modifier.width(200.dp), onClick = {
+                            RoundButton("Reset", onClick = {
+                                selectedDeviceName = ""
+                                selectedDeviceAddress = ""
+                                txtSpeedFactor = SettingPreference.getWheelRpmToSpeedFactor(this@SettingActivity).toString()
+                            })
+                            RoundButton("Save", onClick = {
                                 SettingPreference.saveSettings(
-                                    context = applicationContext,
+                                    context = this@SettingActivity,
                                     deviceName = selectedDeviceName,
                                     address = selectedDeviceAddress
                                 )
+                                SettingPreference.setWheelRpmToSpeedFactor(
+                                    context = this@SettingActivity,
+                                    factor = txtSpeedFactor.toString().toFloatOrNull() ?: 1.0f
+                                )
+
+                                BleService.WHEEL_RPM_TO_SPEED = SettingPreference.getWheelRpmToSpeedFactor(this@SettingActivity)
                                 // close activity
                                 finish()
                             })
-                            {
-                                Text("저장")
-                            }
-                            Spacer(modifier = Modifier.width(16.dp))
-                            Button(modifier = Modifier.width(200.dp), onClick = {
+                            RoundButton("Cancel", onClick = {
                                 finish()
                             })
-                            {
-                                Text("취소")
-                            }
                         }
                     }
 
                 }
+            }
+        }
+    }
+
+    @Composable
+    fun RoundButton(label : String, onClick: () -> Unit) {
+        Box(modifier = Modifier
+            .padding(8.dp),
+        )
+        {
+            Button(modifier = Modifier.size(width = 150.dp, height = 50.dp), onClick = {
+                onClick()
+            })
+            {
+                Text(label)
             }
         }
     }

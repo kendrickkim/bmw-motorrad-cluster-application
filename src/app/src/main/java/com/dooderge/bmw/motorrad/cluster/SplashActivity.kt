@@ -12,6 +12,7 @@ class SplashActivity : ComponentActivity() {
         // splash_screen 배경은 테마에서 적용됨
         Handler(Looper.getMainLooper()).postDelayed({
             var intent = Intent(this, MainActivity::class.java)
+//            var intent = Intent(this, SettingActivity::class.java)
             intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION)
             startActivity(intent)
             finish()

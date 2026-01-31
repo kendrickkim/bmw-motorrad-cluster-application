@@ -67,6 +67,7 @@ fun MainScreen(
     viewModel: MainViewModel = viewModel(),
     onAndroidAutoClick: () -> Unit = {},
     onSettingsClick: () -> Unit = {},
+    onLauncherClick: () -> Unit = {},
     context: Context,
     carStatus: CarStatus
 ) {
@@ -163,25 +164,48 @@ fun MainScreen(
 
 
                     Spacer(modifier = Modifier.height(8.dp))
-                    Box(
-                        modifier = Modifier
-                            .size(128.dp, 128.dp)
-                            .clip(RoundedCornerShape(15.dp))
-                            .background(Color.DarkGray)
-                            .clickable {
-                                onAndroidAutoClick()
-                            }
-
-                    )
-                    {
-                        Image(
-                            contentDescription = "Android auto",
-                            painter = painterResource(id = R.drawable.icon_android_auto),
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Box(
                             modifier = Modifier
-                                .fillMaxSize()
-                                .padding(20.dp),
-                            contentScale = ContentScale.Fit
+                                .size(128.dp, 128.dp)
+                                .clip(RoundedCornerShape(15.dp))
+                                .background(Color.DarkGray)
+                                .clickable {
+                                    onAndroidAutoClick()
+                                }
+
                         )
+                        {
+                            Image(
+                                contentDescription = "Android auto",
+                                painter = painterResource(id = R.drawable.icon_android_auto),
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(20.dp),
+                                contentScale = ContentScale.Fit
+                            )
+                        }
+//                        Spacer(modifier = Modifier.height(16.dp))
+//                        Box(
+//                            modifier = Modifier
+//                                .size(128.dp, 128.dp)
+//                                .clip(RoundedCornerShape(15.dp))
+//                                .background(Color.DarkGray)
+//                                .clickable {
+//                                    onLauncherClick()
+//                                }
+//
+//                        )
+//                        {
+//                            Image(
+//                                contentDescription = "Apps",
+//                                painter = painterResource(id = R.drawable.ic_main),
+//                                modifier = Modifier
+//                                    .fillMaxSize()
+//                                    .padding(20.dp),
+//                                contentScale = ContentScale.Fit
+//                            )
+//                        }
                     }
                     Spacer(modifier = Modifier.height(16.dp))
                     ComponentGearIndicator(carStatus.gear.value, onLongClick = {

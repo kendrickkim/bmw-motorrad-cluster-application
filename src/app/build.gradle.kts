@@ -101,10 +101,7 @@ dependencies {
 
 
     // 이미지 로딩 라이브러리(임시)
-    implementation(libs.coil)
-    implementation(libs.coil.network.okhttp)
-    implementation(libs.coil.svg)
-    implementation(libs.coil.gif)
+    implementation("io.coil-kt:coil-compose:2.6.0")
 
     // 페이징
     implementation(libs.paging.runtime)

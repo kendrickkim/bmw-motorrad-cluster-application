@@ -28,6 +28,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
+import com.dooderge.bmw.motorrad.cluster.launcher.LauncherActivity
 import com.dooderge.bmw.motorrad.cluster.ui.screens.MainScreen
 import com.dooderge.bmw.motorrad.cluster.ui.theme.BMWMotorradClusterTheme
 
@@ -130,32 +131,42 @@ class MainActivity : ComponentActivity() {
         var intent_filter = IntentFilter()
         intent_filter.addAction(BleService.ACTION_CAR_STATUS_DATA_FILTER)
         intent_filter.addAction(BleService.ACTION_CHECK_INPUT_METHOD)
-        registerReceiver(bleDataReceiver, intent_filter)
 
-        bleService?.hideOverlay()
-        // 풀스크린 설정
-        window.decorView.systemUiVisibility = (
-                View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-                        or View.SYSTEM_UI_FLAG_FULLSCREEN
-                        or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                        or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                        or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                        or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                )
-
-        window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-
-        checkAndRequestPermissions()
-
-        selectedBLEDeviceName = SettingPreference.getDeviceName(this) ?: ""
-        selectedBLEDeviceAddress = SettingPreference.getAddress(this) ?: ""
-
-        if (selectedBLEDeviceName.isEmpty() || selectedBLEDeviceAddress.isEmpty()) {
+        if(!checkOverlayPermission())
+        {
             Toast.makeText(
                 this,
-                "블루투스 장치가 선택되지 않았습니다. 설정에서 장치를 선택해주세요.",
+                "오버레이 권한이 필요합니다. 설정에서 권한을 허용해주세요.",
                 Toast.LENGTH_LONG
             ).show()
+        } else {
+            registerReceiver(bleDataReceiver, intent_filter)
+
+            bleService?.hideOverlay()
+            // 풀스크린 설정
+            window.decorView.systemUiVisibility = (
+                    View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                            or View.SYSTEM_UI_FLAG_FULLSCREEN
+                            or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                            or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                            or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                            or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                    )
+
+            window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+
+            checkAndRequestPermissions()
+
+            selectedBLEDeviceName = SettingPreference.getDeviceName(this) ?: ""
+            selectedBLEDeviceAddress = SettingPreference.getAddress(this) ?: ""
+
+            if (selectedBLEDeviceName.isEmpty() || selectedBLEDeviceAddress.isEmpty()) {
+                Toast.makeText(
+                    this,
+                    "블루투스 장치가 선택되지 않았습니다. 설정에서 장치를 선택해주세요.",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
         }
 //        else {
 //            // 선택된 BLE 장치 정보로 서비스 시작
@@ -208,6 +219,10 @@ class MainActivity : ComponentActivity() {
                             val settingsIntent = Intent(this, SettingActivity::class.java)
                             // settingsIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                             startActivity(settingsIntent)
+                        },
+                        onLauncherClick = {
+                            val launcherIntent = Intent(this, LauncherActivity::class.java)
+                            startActivity(launcherIntent)
                         },
                         context = this,
                         carStatus = carStatus

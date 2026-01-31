@@ -44,5 +44,15 @@ class SettingPreference private constructor() {
             pref.edit().putInt(OVERLAY_X_KEY, x).putInt(OVERLAY_Y_KEY, y).apply()
         }
 
+        fun setWheelRpmToSpeedFactor(context: Context, factor: Float) {
+            val pref = context.getSharedPreferences(PREFERENCE_NAME, Context.MODE_PRIVATE)
+            pref.edit().putFloat("wheelRpmToSpeedFactor", factor).apply()
+        }
+
+        fun getWheelRpmToSpeedFactor(context: Context): Float {
+            val pref = context.getSharedPreferences(PREFERENCE_NAME, Context.MODE_PRIVATE)
+            return pref.getFloat("wheelRpmToSpeedFactor", 0.121f)
+        }
+
     }
 }

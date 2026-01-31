@@ -45,6 +45,7 @@ class BleService : Service() {
             "com.dooderge.bmw.motorrad.cluster.CAR_STATUS_CHANGED"
         public const val ACTION_CHECK_INPUT_METHOD =
             "com.dooderge.bmw.motorrad.cluster.CHECK_INPUT_METHOD"
+        public var WHEEL_RPM_TO_SPEED = 0.121f // 1 RPM = 0.121 km/h
     }
 
     private var windowManager: WindowManager? = null
@@ -74,6 +75,9 @@ class BleService : Service() {
                 .setContentText("BLE 통신 및 오버레이 표시").setSmallIcon(R.drawable.ic_launcher_foreground)
                 .build()
         startForeground(NOTIFICATION_ID, notification)
+
+        // read wheel RPM to speed factor from settings
+        WHEEL_RPM_TO_SPEED = SettingPreference.getWheelRpmToSpeedFactor(this)
 
         // 오버레이 생성 (View 기반)
 
@@ -352,7 +356,9 @@ class BleService : Service() {
 
                     Log.d("BleService", "Received data: $dataString")
 
-                    var speed: Int = data[5].toUnsigendInt() + data[6].toUnsigendInt() * 256
+                    var wheel_rpm: Int = data[5].toUnsigendInt() + data[6].toUnsigendInt() * 256
+                    var speed = (wheel_rpm * BleService.WHEEL_RPM_TO_SPEED).toInt() // 1 RPM = 0.121 km/h
+
                     var rpm = data[7].toUnsigendInt() + data[8].toUnsigendInt() * 256
                     var gear = data[3].toUnsigendInt()
 
