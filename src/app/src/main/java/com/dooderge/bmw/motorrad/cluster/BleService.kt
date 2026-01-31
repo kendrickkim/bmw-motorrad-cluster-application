@@ -15,6 +15,7 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.graphics.PixelFormat
+import android.graphics.drawable.GradientDrawable
 import android.hardware.input.InputManager
 import android.os.Binder
 import android.os.Build
@@ -104,8 +105,14 @@ class BleService : Service() {
         val layout = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
-            setBackgroundColor(Color.argb(180, 0, 0, 0))
-            setPadding(10, 10, 10, 10)
+            val drawable = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                setColor(Color.argb(180, 0, 0, 0))
+                cornerRadius = dpToPx(10).toFloat()
+                setStroke(dpToPx(1), Color.argb(100, 255, 255, 255))
+            }
+            background = drawable
+            setPadding(dpToPx(10), dpToPx(10), dpToPx(10), dpToPx(10))
         }
 
         val gearImage = ImageView(this).apply {
@@ -141,7 +148,7 @@ class BleService : Service() {
                 if (event.action == MotionEvent.ACTION_DOWN) {
                     val current_touch_millis = System.currentTimeMillis()
                     if (current_touch_millis - last_touch_millis < 300) {
-                        Log.d("BleService", "onTouch: ${event.action}")
+//                        Log.d("BleService", "onTouch: ${event.action}")
                         return true
                     }
                     last_touch_millis = current_touch_millis
@@ -354,8 +361,7 @@ class BleService : Service() {
                         dataString += byte.toUnsigendInt().toUByte().toString(16) + " "
                     }
 
-                    Log.d("BleService", "Received data: $dataString")
-
+               
                     var wheel_rpm: Int = data[5].toUnsigendInt() + data[6].toUnsigendInt() * 256
                     var speed = (wheel_rpm * BleService.WHEEL_RPM_TO_SPEED).toInt() // 1 RPM = 0.121 km/h
 
