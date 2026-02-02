@@ -42,244 +42,184 @@ import kotlin.math.abs
 
 @Composable
 fun ClusterSpeedRpm(
-    width: Int,
-    height: Int,
-    scale: Float,
-    carStatus: CarStatus,
+	width: Int,
+	height: Int,
+	scale: Float,
+	carStatus: CarStatus,
 //	modifier: Modifier = Modifier
 ) {
 
-    val rpmDegreeStart = -131.5f
-    val rpmDegreeEnd = 131.5f
-    val rpmMax = 14000.0f;
+	val rpmDegreeStart = -134f
+	val rpmDegreeEnd = 134f
+	val rpmMax = 14000.0f;
 
-    var rpmInner by remember { mutableFloatStateOf(0f) }
-    var degreeRpmPin by remember { mutableFloatStateOf(rpmDegreeStart) }
+	var rpmInner by remember { mutableFloatStateOf(0f) }
+	var degreeRpmPin by remember { mutableFloatStateOf(rpmDegreeStart) }
 
 
-    LaunchedEffect(Unit) {
-        val tmrRpmChangeTest = Timer()
+	LaunchedEffect(Unit) {
+		val tmrRpmChangeTest = Timer()
 
-        tmrRpmChangeTest.schedule(object : TimerTask() {  // 시간 / 날짜 리프레시 타이머
-            override fun run() {
-                val rpm = carStatus.rpm.value.toFloat()
+		tmrRpmChangeTest.schedule(object : TimerTask() {  // 시간 / 날짜 리프레시 타이머
+			override fun run() {
+				val rpm = carStatus.rpm.value.toFloat()
 //                val rpm = 11000f
-                if (rpmInner != rpm) {
-                    val unitDiff = abs(rpmInner - rpm) / 23
-                    var _rpm = rpmInner
-                    if (rpm > rpmInner) {
-                        _rpm = _rpm + unitDiff
-                    } else {
-                        _rpm = _rpm - unitDiff
-                    }
+				if (rpmInner != rpm) {
+					val unitDiff = abs(rpmInner - rpm) / 23
+					var _rpm = rpmInner
+					if (rpm > rpmInner) {
+						_rpm = _rpm + unitDiff
+					} else {
+						_rpm = _rpm - unitDiff
+					}
 
-                    if (abs(rpm - _rpm) < 10) {
-                        _rpm = rpm;
-                    }
-                    rpmInner = _rpm
-                    degreeRpmPin =
-                        rpmDegreeStart + (_rpm / rpmMax) * (rpmDegreeEnd - rpmDegreeStart)
-                }
-            }
-        }, 0, 20) // 50fps
-    }
-
-
-    val paddingTop = 161.designedDp()
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Top,
-
-        ) {
-
-        val pinScale: Float = 663f / 840f
-
-        Spacer(Modifier.height(paddingTop))
-        Box(
-            modifier = Modifier
-                .height(height.pxToDp())
-                .width(width.pxToDp())
-        )
-        {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            )
-            {
-                Box(
-                    modifier = Modifier.size(width.pxToDp() * pinScale, height.pxToDp() * pinScale),
-                    contentAlignment = Alignment.Center
-                )
-                {
-                    // Speed String
-
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(top = 150.designedDp()),
-                        verticalArrangement = Arrangement.Top,
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    )
-                    {
+					if (abs(rpm - _rpm) < 10) {
+						_rpm = rpm;
+					}
+					rpmInner = _rpm
+					degreeRpmPin =
+						rpmDegreeStart + (_rpm / rpmMax) * (rpmDegreeEnd - rpmDegreeStart)
+				}
+			}
+		}, 0, 20) // 50fps
+	}
 
 
-                        ClusterText(
-                            text = "888",
-                            fontSize = 150f,
-                            fontWeight = FontWeight.ExtraBold
-                        )
-                        ClusterText(
-                            text = "Km/h",
-                            fontSize = 40f,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(Modifier.height(40.designedDp()))
-                        ClusterText(
-                            text = "RPM",
-                            fontSize = 32f,
-                            fontWeight = FontWeight.Bold
-                        )
-                        var colorRpmNumber = Color.White;
-                        if (rpmInner > 11000)
-                            colorRpmNumber = Color(0xffAD3333)
-                        else if (rpmInner > 4000)
-                            colorRpmNumber = Color(0xff01b2ff)
+	val paddingTop = 161.designedDp()
 
-                        ClusterText(
-                            text = rpmInner.toInt().toString(),
-                            fontSize = 64f,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = colorRpmNumber
-                        )
+	Column(
+		modifier = Modifier
+			.fillMaxSize(),
+		horizontalAlignment = Alignment.CenterHorizontally,
+		verticalArrangement = Arrangement.Top,
 
+		) {
 
-                    }
+		val pinScale: Float = 663f / 840f
 
-                }
+		Spacer(Modifier.height(paddingTop))
+		Box(
+			modifier = Modifier
+				.height(height.pxToDp())
+				.width(width.pxToDp())
+		)
+		{
+			Box(
+				modifier = Modifier.fillMaxSize(),
+				contentAlignment = Alignment.Center
+			)
+			{
+				Box(
+					modifier = Modifier.size(width.pxToDp() * pinScale, height.pxToDp() * pinScale),
+					contentAlignment = Alignment.Center
+				)
+				{
+					// Speed String
 
-                Box(
-                    modifier = Modifier.fillMaxSize()
-                )
-                {
-                    Image(
-                        contentDescription = "RPM Guage",
-                        painter = painterResource(id = R.drawable.rpm_guage),
-                        modifier = Modifier
-                            .size(
-                                width.pxToDp(),
-                                height.pxToDp()
-                            )
-                            .graphicsLayer {
-                                // 2. Set the custom shape and enable clipping.
-                                this.shape = fanShape(180 + degreeRpmPin)
-                                this.clip = true
-                            },
-                    )
-                }
+					Column(
+						modifier = Modifier
+							.fillMaxSize()
+							.padding(top = 150.designedDp()),
+						verticalArrangement = Arrangement.Top,
+						horizontalAlignment = Alignment.CenterHorizontally
+					)
+					{
 
+						Box(
+							modifier = Modifier.size(412.designedDp(), 239.designedDp()),
+							contentAlignment = Alignment.TopCenter
+						)
+						{
+							Box(
+								modifier = Modifier.fillMaxSize(),
+								contentAlignment = Alignment.TopCenter
+							)
+							{
+								ClusterText(
+									text = "888",
+									fontSize = 210f,
+									fontWeight = FontWeight.ExtraBold,
+									color = Color.White
+								)
+							}
+							Box(
+								modifier = Modifier.fillMaxSize().padding(top = 205.designedDp()),
+								contentAlignment = Alignment.TopCenter
+							)
+							{
+								ClusterText(
+									text = "Km/h",
+									fontSize = 40f,
+									fontWeight = FontWeight.Bold
+								)
+							}
+						}
 
-                // Rpm Image
-                Box(
-                    modifier = Modifier.size(width.pxToDp() * pinScale, height.pxToDp() * pinScale)
-                )
-                {
-                    Image(
-                        contentDescription = "RPM pin",
-                        painter = painterResource(id = R.drawable.rpm_pin_area),
-                        modifier = Modifier
-                            .size(
-                                width.pxToDp(),
-                                height.pxToDp()
-                            )
-                            .rotate(degreeRpmPin),
-                    )
-                }
+						Spacer(Modifier.height(40.designedDp()))
+						ClusterText(
+							text = "RPM",
+							fontSize = 32f,
+							fontWeight = FontWeight.Bold
+						)
+						var colorRpmNumber = Color.White;
+						if (rpmInner > 11000)
+							colorRpmNumber = Color(0xffAD3333)
+						else if (rpmInner > 4000)
+							colorRpmNumber = Color(0xff01b2ff)
 
-
-            }
-
-        }
-    }
-}
-
-@Composable
-fun GearLeveLIndicator(
-    carStatus: CarStatus,
-    modifier: Modifier = Modifier
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(bottom = 50.designedDp()),
-        contentAlignment = Alignment.BottomCenter
-    )
-    {
-        var colorGearLevel = Color(0xff00BE62)
-
-        Box(
-            modifier = Modifier
-                .size(200.designedDp(), 200.designedDp())
-                .border(
-                    width = 10.designedDp(),
-                    color = colorGearLevel,
-                    shape = RoundedCornerShape(20.designedDp())
-                ),
-            contentAlignment = Alignment.TopCenter
-        )
-        {
-            ClusterText(
-                text = "中",
-                fontSize = 180f,
-                fontWeight = FontWeight.ExtraBold,
-                color = colorGearLevel
-            )
-        }
-    }
-}
+						ClusterText(
+							text = rpmInner.toInt().toString(),
+							fontSize = 70f,
+							fontWeight = FontWeight.ExtraBold,
+							color = colorRpmNumber
+						)
 
 
-@Composable
-fun ClusterText(
-    text: String,
-    fontSize: Float,
-    fontWeight: FontWeight,
-    color: Color = Color.White
-) {
-    Text(
-        text = text,
-        fontSize = fontSize.designedSp(),
-        fontWeight = fontWeight,
-        color = color,
-        style = TextStyle(
-            // 폰트의 기본 상하단 여백을 제거합니다.
-            platformStyle = PlatformTextStyle(
-                includeFontPadding = false
-            ),
-            // 추가적으로 줄 높이 조절이 필요할 경우 사용합니다.
-            lineHeightStyle = LineHeightStyle(
-                alignment = LineHeightStyle.Alignment.Center,
-                trim = LineHeightStyle.Trim.Both
-            )
-        )
-    )
-}
+					}
 
-@Composable
-fun rpmString(carStatus: CarStatus) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(bottom = 50.dp),
-        contentAlignment = Alignment.BottomCenter
-    )
-    {
-        Text(
-            text = carStatus.rpm.toString(),
-            fontSize = 25.sp,
-            fontWeight = FontWeight.Bold
-        )
-    }
+				}
+
+				Box(
+					modifier = Modifier.fillMaxSize()
+				)
+				{
+					Image(
+						contentDescription = "RPM Guage",
+						painter = painterResource(id = R.drawable.rpm_guage),
+						modifier = Modifier
+							.size(
+								width.pxToDp(),
+								height.pxToDp()
+							)
+							.graphicsLayer {
+								// 2. Set the custom shape and enable clipping.
+								this.shape = fanShape(180 + degreeRpmPin)
+								this.clip = true
+							},
+					)
+				}
+
+
+				// Rpm Image
+				Box(
+					modifier = Modifier.size(width.pxToDp() * pinScale, height.pxToDp() * pinScale)
+				)
+				{
+					Image(
+						contentDescription = "RPM pin",
+						painter = painterResource(id = R.drawable.rpm_pin_area),
+						modifier = Modifier
+							.size(
+								width.pxToDp(),
+								height.pxToDp()
+							)
+							.rotate(degreeRpmPin),
+					)
+				}
+
+
+			}
+
+		}
+	}
 }

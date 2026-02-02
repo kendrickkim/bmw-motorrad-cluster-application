@@ -128,7 +128,7 @@ class BleService : Service() {
         val speedText = TextView(this).apply {
             text = "0"
             setTextColor(Color.WHITE)
-            textSize = dpToSp(30).toFloat()
+            textSize = dpToSp(20).toFloat()
             typeface = mFont
             gravity = Gravity.TOP or Gravity.RIGHT
             textAlignment = View.TEXT_ALIGNMENT_GRAVITY
