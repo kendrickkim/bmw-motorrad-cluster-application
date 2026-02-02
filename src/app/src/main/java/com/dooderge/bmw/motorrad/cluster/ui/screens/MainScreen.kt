@@ -1,7 +1,6 @@
 package com.dooderge.bmw.motorrad.cluster.ui.screens
 
 import android.content.Context
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -9,14 +8,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.calculateEndPadding
-import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -29,7 +24,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
@@ -37,14 +31,10 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
@@ -55,14 +45,15 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.dooderge.bmw.motorrad.cluster.CarStatus
 import com.dooderge.bmw.motorrad.cluster.R
 import com.dooderge.bmw.motorrad.cluster.ui.component.ClusterSpeedRpm
-import com.dooderge.bmw.motorrad.cluster.ui.component.SectionDistance
+import com.dooderge.bmw.motorrad.cluster.ui.component.GearLeveLIndicator
+import com.dooderge.bmw.motorrad.cluster.ui.component.designedDp
 import com.dooderge.bmw.motorrad.cluster.ui.component.pxToDp
+import com.dooderge.bmw.motorrad.cluster.ui.component.setDesignedSizeByWidth
+import com.dooderge.bmw.motorrad.cluster.ui.component.setDesginedSizeByHeight
 import com.dooderge.bmw.motorrad.cluster.viewmodel.MainViewModel
 import java.util.Timer
 import java.util.TimerTask
-import kotlin.math.abs
 import kotlin.random.Random
-
 
 fun fanShape(targetDegree: Float) = object : Shape {
     override fun createOutline(
@@ -115,14 +106,11 @@ fun MainScreen(
     var sizeDisplayBackgroundImage by remember { mutableStateOf(IntSize(1, 1)) }
     var sizeRpmGuageImage by remember { mutableStateOf(IntSize(1, 1)) }
     var sizeDisplayRpmGuageImage by remember { mutableStateOf(IntSize(1, 1)) }
-
+    var ratioImageAndScreen by remember { mutableFloatStateOf(1f) }
 
     val scaleImage = remember {
         mutableFloatStateOf(1f)
     }
-
-
-
 
     LaunchedEffect(Unit) {
 //		val timerRefreshDateTime = Timer()
@@ -193,8 +181,11 @@ fun MainScreen(
             var ratioImageSize = 1f
             if (ratioScreen < ratioBackgroundImage) {
                 ratioImageSize = sizeScreen.width.toFloat() / sizeBackgroundImage.width.toFloat()
+                setDesignedSizeByWidth(sizeScreen.width.toFloat())
+
             } else {
                 ratioImageSize = sizeScreen.height.toFloat() / sizeBackgroundImage.height.toFloat()
+                setDesginedSizeByHeight(sizeScreen.height.toFloat())
             }
 
             sizeDisplayBackgroundImage =
@@ -211,6 +202,7 @@ fun MainScreen(
                 (sizeRpmGuageImage.height * scaleImage.floatValue).toInt()
             )
         }
+
     }
 
 
@@ -293,8 +285,13 @@ fun MainScreen(
                             painter = painterResource(id = R.drawable.cluster_background_black),
                             modifier = Modifier
                                 .fillMaxSize()
-
                         )
+
+                        GearLeveLIndicator(
+                            carStatus = carStatus,
+                            modifier = Modifier.width(300.designedDp())
+                        )
+
 
                         ClusterSpeedRpm(
                             width = sizeDisplayRpmGuageImage.width,
@@ -336,10 +333,10 @@ fun MainScreen(
                         data class SectionInfo(
                             val text: String,
                             val padding: PaddingValues,
-                            val alignment: Alignment
+                            val alignment: Alignment = Alignment.TopStart
                         )
 
-                        val top1 = 215.dp
+                        val top1 = 202.designedDp()
                         val top2 = 550.dp
                         val top3 = 885.dp
                         val left = 15.dp
@@ -350,7 +347,6 @@ fun MainScreen(
                             SectionInfo(
                                 "Distance",
                                 PaddingValues(start = left, top = top1),
-                                Alignment.TopStart
                             ),
                             SectionInfo(
                                 "Time",
@@ -400,69 +396,69 @@ fun MainScreen(
 
                         status.forEach { s ->
 
-                            val newPadding = PaddingValues(
-                                s.padding.calculateStartPadding(LayoutDirection.Ltr) * scaleImage.value,
-                                s.padding.calculateTopPadding() * scaleImage.value,
-                                s.padding.calculateEndPadding(LayoutDirection.Ltr) * scaleImage.value,
-                                s.padding.calculateBottomPadding() * scaleImage.value,
-                            )
+//                            val newPadding = PaddingValues(
+//                                s.padding.calculateStartPadding(LayoutDirection.Ltr) * scaleImage.value,
+//                                s.padding.calculateTopPadding() * scaleImage.value,
+//                                s.padding.calculateEndPadding(LayoutDirection.Ltr) * scaleImage.value,
+//                                s.padding.calculateBottomPadding() * scaleImage.value,
+//                            )
 
                             SectionText(
                                 text = s.text,
-                                padding = newPadding,
+                                padding = s.padding,
                                 align = s.alignment
                             )
                         }
                     }
 
                     // 클러스터 텍스트 정보
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopStart)
-                    {
-                        SectionDistance(
-                            modifier = Modifier
-                                .padding(top = 98.dp)
-                                .size(250.dp, 70.dp),
-                            carStatus = carStatus
-                        )
-
-                        SectionDistance(
-                            modifier = Modifier
-                                .padding(top = 209.dp)
-                                .size(250.dp, 70.dp),
-                            carStatus = carStatus
-                        )
-
-                        SectionDistance(
-                            modifier = Modifier
-                                .padding(top = 320.dp)
-                                .size(250.dp, 70.dp),
-                            carStatus = carStatus
-                        )
-
-                        SectionDistance(
-                            modifier = Modifier
-                                .padding(top = 98.dp)
-                                .size(250.dp, 70.dp),
-                            carStatus = carStatus,
-                            alignment = Alignment.TopEnd
-                        )
-
-                        SectionDistance(
-                            modifier = Modifier
-                                .padding(top = 209.dp)
-                                .size(250.dp, 70.dp),
-                            carStatus = carStatus
-                            , alignment = Alignment.TopEnd
-                        )
-
-                        SectionDistance(
-                            modifier = Modifier
-                                .padding(top = 320.dp)
-                                .size(250.dp, 70.dp),
-                            carStatus = carStatus
-                            , alignment = Alignment.TopEnd
-                        )
-                    }
+//                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopStart)
+//                    {
+//                        SectionDistance(
+//                            modifier = Modifier
+//                                .padding(top = 98.dp)
+//                                .size(250.dp, 70.dp),
+//                            carStatus = carStatus
+//                        )
+//
+//                        SectionDistance(
+//                            modifier = Modifier
+//                                .padding(top = 209.dp)
+//                                .size(250.dp, 70.dp),
+//                            carStatus = carStatus
+//                        )
+//
+//                        SectionDistance(
+//                            modifier = Modifier
+//                                .padding(top = 320.dp)
+//                                .size(250.dp, 70.dp),
+//                            carStatus = carStatus
+//                        )
+//
+//                        SectionDistance(
+//                            modifier = Modifier
+//                                .padding(top = 98.dp)
+//                                .size(250.dp, 70.dp),
+//                            carStatus = carStatus,
+//                            alignment = Alignment.TopEnd
+//                        )
+//
+//                        SectionDistance(
+//                            modifier = Modifier
+//                                .padding(top = 209.dp)
+//                                .size(250.dp, 70.dp),
+//                            carStatus = carStatus
+//                            , alignment = Alignment.TopEnd
+//                        )
+//
+//                        SectionDistance(
+//                            modifier = Modifier
+//                                .padding(top = 320.dp)
+//                                .size(250.dp, 70.dp),
+//                            carStatus = carStatus
+//                            , alignment = Alignment.TopEnd
+//                        )
+//                    }
 
 
 //              Text(

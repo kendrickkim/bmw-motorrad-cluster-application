@@ -66,7 +66,6 @@ fun BMWMotorradClusterTheme(
     }
 
     val defaultTypography = Typography()
-
     MaterialTheme(
         colorScheme = colorScheme,
         content = content,

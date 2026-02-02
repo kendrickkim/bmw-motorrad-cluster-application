@@ -35,12 +35,49 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextIndent
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.graphics.createBitmap
 import com.dooderge.bmw.motorrad.cluster.CarStatus
 import com.dooderge.bmw.motorrad.cluster.R
+
+var widthDesigned = 1920f
+var heightDesigned = 1080f
+var ratioImageAndScreen = 1f
+
+fun setDesginedSizeByHeight(height: Float) {
+    ratioImageAndScreen = height / heightDesigned
+}
+
+fun setDesignedSizeByWidth(width: Float) {
+    ratioImageAndScreen = width / widthDesigned
+}
+
+
+@Composable
+fun Int.designedDp(): Dp {
+    return (this@designedDp * ratioImageAndScreen).pxToDp()
+}
+
+@Composable
+fun Float.designedDp(): Dp {
+    return (this@designedDp * ratioImageAndScreen).pxToDp()
+}
+
+
+@Composable
+fun Int.designedSp(): TextUnit {
+    return (this@designedSp * ratioImageAndScreen).pxToSp()
+}
+
+
+@Composable
+fun Float.designedSp(): TextUnit {
+    return (this@designedSp * ratioImageAndScreen).pxToSp()
+}
 
 
 @Composable
@@ -54,6 +91,10 @@ fun Dp.dpToPx(): Float = with(LocalDensity.current) { this@dpToPx.toPx() }
 
 @Composable
 fun Int.pxToSp() = with(LocalDensity.current) { this@pxToSp.toSp() }
+
+@Composable
+fun Float.pxToSp() = with(LocalDensity.current) { this@pxToSp.toSp() }
+
 
 @SuppressLint("CoroutineCreationDuringComposition")
 @Composable

@@ -1,14 +1,18 @@
 package com.dooderge.bmw.motorrad.cluster.ui.component
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -19,9 +23,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.PlatformTextStyle
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.dooderge.bmw.motorrad.cluster.CarStatus
@@ -77,13 +85,13 @@ fun ClusterSpeedRpm(
     }
 
 
-    val paddingTop = (300.toFloat() * scale).pxToDp()
+    val paddingTop = 161.designedDp()
 
     Column(
         modifier = Modifier
             .fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
+        verticalArrangement = Arrangement.Top,
 
         ) {
 
@@ -91,10 +99,9 @@ fun ClusterSpeedRpm(
 
         Spacer(Modifier.height(paddingTop))
         Box(
-            modifier = Modifier.size(
-                width.pxToDp(),
-                height.pxToDp()
-            )
+            modifier = Modifier
+                .height(height.pxToDp())
+                .width(width.pxToDp())
         )
         {
             Box(
@@ -108,60 +115,49 @@ fun ClusterSpeedRpm(
                 )
                 {
                     // Speed String
-                    Box(
+
+                    Column(
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(top = 50.dp),
-                        contentAlignment = Alignment.TopCenter
+                            .padding(top = 150.designedDp()),
+                        verticalArrangement = Arrangement.Top,
+                        horizontalAlignment = Alignment.CenterHorizontally
                     )
                     {
-                        Text(
+
+
+                        ClusterText(
                             text = "888",
-                            fontSize = 55.sp,
+                            fontSize = 150f,
                             fontWeight = FontWeight.ExtraBold
                         )
-                    }
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(top = 110.dp),
-                        contentAlignment = Alignment.TopCenter
-                    )
-                    {
-                        Text(
+                        ClusterText(
                             text = "Km/h",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.ExtraBold
+                            fontSize = 40f,
+                            fontWeight = FontWeight.Bold
                         )
+                        Spacer(Modifier.height(40.designedDp()))
+                        ClusterText(
+                            text = "RPM",
+                            fontSize = 32f,
+                            fontWeight = FontWeight.Bold
+                        )
+                        var colorRpmNumber = Color.White;
+                        if (rpmInner > 11000)
+                            colorRpmNumber = Color(0xffAD3333)
+                        else if (rpmInner > 4000)
+                            colorRpmNumber = Color(0xff01b2ff)
+
+                        ClusterText(
+                            text = rpmInner.toInt().toString(),
+                            fontSize = 64f,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = colorRpmNumber
+                        )
+
+
                     }
 
-                    // Rpm String
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(bottom = 80.dp),
-                        contentAlignment = Alignment.BottomCenter
-                    )
-                    {
-                        Text(
-                            text = "RPM",
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(bottom = 50.dp),
-                        contentAlignment = Alignment.BottomCenter
-                    )
-                    {
-                        Text(
-                            text = rpmInner.toInt().toString(),
-                            fontSize = 25.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
                 }
 
                 Box(
@@ -183,6 +179,8 @@ fun ClusterSpeedRpm(
                             },
                     )
                 }
+
+
                 // Rpm Image
                 Box(
                     modifier = Modifier.size(width.pxToDp() * pinScale, height.pxToDp() * pinScale)
@@ -204,5 +202,84 @@ fun ClusterSpeedRpm(
             }
 
         }
+    }
+}
+
+@Composable
+fun GearLeveLIndicator(
+    carStatus: CarStatus,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(bottom = 50.designedDp()),
+        contentAlignment = Alignment.BottomCenter
+    )
+    {
+        var colorGearLevel = Color(0xff00BE62)
+
+        Box(
+            modifier = Modifier
+                .size(200.designedDp(), 200.designedDp())
+                .border(
+                    width = 10.designedDp(),
+                    color = colorGearLevel,
+                    shape = RoundedCornerShape(20.designedDp())
+                ),
+            contentAlignment = Alignment.TopCenter
+        )
+        {
+            ClusterText(
+                text = "中",
+                fontSize = 180f,
+                fontWeight = FontWeight.ExtraBold,
+                color = colorGearLevel
+            )
+        }
+    }
+}
+
+
+@Composable
+fun ClusterText(
+    text: String,
+    fontSize: Float,
+    fontWeight: FontWeight,
+    color: Color = Color.White
+) {
+    Text(
+        text = text,
+        fontSize = fontSize.designedSp(),
+        fontWeight = fontWeight,
+        color = color,
+        style = TextStyle(
+            // 폰트의 기본 상하단 여백을 제거합니다.
+            platformStyle = PlatformTextStyle(
+                includeFontPadding = false
+            ),
+            // 추가적으로 줄 높이 조절이 필요할 경우 사용합니다.
+            lineHeightStyle = LineHeightStyle(
+                alignment = LineHeightStyle.Alignment.Center,
+                trim = LineHeightStyle.Trim.Both
+            )
+        )
+    )
+}
+
+@Composable
+fun rpmString(carStatus: CarStatus) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(bottom = 50.dp),
+        contentAlignment = Alignment.BottomCenter
+    )
+    {
+        Text(
+            text = carStatus.rpm.toString(),
+            fontSize = 25.sp,
+            fontWeight = FontWeight.Bold
+        )
     }
 }
