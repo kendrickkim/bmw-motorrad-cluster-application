@@ -1,5 +1,6 @@
 package com.dooderge.bmw.motorrad.cluster
 
+import android.R
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
@@ -8,7 +9,9 @@ import android.view.View
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.rememberScrollState
@@ -95,11 +98,11 @@ class SettingActivity : ComponentActivity() {
                         Row(
                             modifier = Modifier
                                 .padding(start = 8.dp, end = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalAlignment = Alignment.Top
                         ) {
                             Column(
                                 modifier = Modifier
-                                    .weight(0.7f)
+                                    .weight(0.8f)
                                     .padding(end = 8.dp)
                             ) {
                                 Row(
@@ -137,7 +140,7 @@ class SettingActivity : ComponentActivity() {
                                     ) {
                                         Text(
                                             text = if (selectedDeviceName.isNotEmpty()) selectedDeviceName else "선택된 장치 없음",
-                                            fontSize = 28.sp,
+                                            fontSize = 23.sp,
                                             color = Color.White,
                                             fontWeight = FontWeight.Medium
                                         )
@@ -202,7 +205,7 @@ class SettingActivity : ComponentActivity() {
                                                 unfocusedContainerColor = Color.Black
                                             ),
                                             textStyle = TextStyle(
-                                                fontSize = 28.sp,
+                                                fontSize = 23.sp,
                                                 color = Color.White,
                                                 fontWeight = FontWeight.Medium,
                                                 textAlign = TextAlign.Center,
@@ -217,36 +220,44 @@ class SettingActivity : ComponentActivity() {
 
                                 }
                             }
-                            Column()
+                            Column(Modifier.weight(0.2f))
                             {
+                                Box(Modifier.weight(1f))
+                                {
+                                    SameWeightButton("Save", onClick = {
+                                        SettingPreference.saveSettings(
+                                            context = this@SettingActivity,
+                                            deviceName = selectedDeviceName,
+                                            address = selectedDeviceAddress
+                                        )
+                                        SettingPreference.setWheelRpmToSpeedFactor(
+                                            context = this@SettingActivity,
+                                            factor = strSpeedFactor.toString().toFloatOrNull()
+                                                ?: 1.0f
+                                        )
 
-                                RoundButton("Save", onClick = {
-                                    SettingPreference.saveSettings(
-                                        context = this@SettingActivity,
-                                        deviceName = selectedDeviceName,
-                                        address = selectedDeviceAddress
-                                    )
-                                    SettingPreference.setWheelRpmToSpeedFactor(
-                                        context = this@SettingActivity,
-                                        factor = strSpeedFactor.toString().toFloatOrNull()
-                                            ?: 1.0f
-                                    )
-
-                                    BleService.WHEEL_RPM_TO_SPEED =
-                                        SettingPreference.getWheelRpmToSpeedFactor(this@SettingActivity)
-                                    // close activity
-                                    finish()
-                                })
-                                RoundButton("Cancel", onClick = {
-                                    finish()
-                                })
-                                RoundButton("Reset", onClick = {
-                                    selectedDeviceName = ""
-                                    selectedDeviceAddress = ""
-                                    strSpeedFactor =
-                                        SettingPreference.getWheelRpmToSpeedFactor(this@SettingActivity)
-                                            .toString()
-                                })
+                                        BleService.WHEEL_RPM_TO_SPEED =
+                                            SettingPreference.getWheelRpmToSpeedFactor(this@SettingActivity)
+                                        // close activity
+                                        finish()
+                                    })
+                                }
+                                Box(Modifier.weight(1f))
+                                {
+                                    SameWeightButton("Cancel", onClick = {
+                                        finish()
+                                    })
+                                }
+                                Box(Modifier.weight(1f))
+                                {
+                                    SameWeightButton("Reset", onClick = {
+                                        selectedDeviceName = ""
+                                        selectedDeviceAddress = ""
+                                        strSpeedFactor =
+                                            SettingPreference.getWheelRpmToSpeedFactor(this@SettingActivity)
+                                                .toString()
+                                    })
+                                }
                             }
 
                         }
@@ -298,6 +309,29 @@ class SettingActivity : ComponentActivity() {
                     }
                 }
             }
+        }
+    }
+
+    @Composable
+    fun SameWeightButton(label: String, onClick: () -> Unit) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(3.dp)
+                .background(color = Color(0xff333333))
+                .clickable(onClick = {
+                    onClick()
+//                    finish()
+                }),
+            contentAlignment = Alignment.Center
+        )
+        {
+            Text(
+                text = label,
+                fontSize = 15.sp,
+                color = Color.White,
+                fontWeight = FontWeight.ExtraBold
+            )
         }
     }
 

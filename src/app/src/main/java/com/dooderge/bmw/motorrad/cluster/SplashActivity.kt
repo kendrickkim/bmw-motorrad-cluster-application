@@ -4,6 +4,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.view.View
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Box
@@ -13,10 +14,12 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.animateLottieCompositionAsState
 import com.airbnb.lottie.compose.rememberLottieComposition
+import kotlinx.coroutines.delay
 
 class SplashActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -26,11 +29,28 @@ class SplashActivity : ComponentActivity() {
             SplashScreen {
                 // 애니메이션이 끝나거나 일정 시간이 지나면 MainActivity로 이동
                 val intent = Intent(this, MainActivity::class.java)
-                intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION)
-//                startActivity(intent)
-//                finish()
+//                intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION)
+                startActivity(intent)
+                overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
+                finish()
             }
         }
+    }
+
+    override fun onResume()
+    {
+        super.onResume()
+
+        window.decorView.systemUiVisibility = (
+                View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                        or View.SYSTEM_UI_FLAG_FULLSCREEN
+                        or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                        or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                        or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                        or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                )
+
+        window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
     }
 }
 
@@ -48,6 +68,7 @@ fun SplashScreen(onAnimationComplete: () -> Unit) {
     // 3. 애니메이션이 재생 완료되면 onTimeout 콜백을 호출합니다.
     LaunchedEffect(progress) {
         if (progress == 1f) { // 애니메이션이 끝까지 재생되면
+            delay(1000)
             onAnimationComplete()
         }
     }
@@ -59,7 +80,10 @@ fun SplashScreen(onAnimationComplete: () -> Unit) {
     ) {
         LottieAnimation(
             composition = composition,
-            modifier = Modifier.fillMaxSize() // 화면 전체에 채우거나 크기 조절
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop
+
+        // 화면 전체에 채우거나 크기 조절
         )
     }
 }

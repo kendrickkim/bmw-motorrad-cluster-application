@@ -88,22 +88,24 @@ class MainActivity : ComponentActivity() {
                 var newCarStatus = CarStatus()
                 newCarStatus.fromJson(json)
                 carStatus.copyFrom(newCarStatus)
+                carStatus.setBtStatus(true)
 
 //                Log.d("MainActivity", "Received car status: $carStatus")
             } else if (intent?.action == BleService.ACTION_CHECK_INPUT_METHOD) {
-                Toast.makeText(
-                    applicationContext,
-                    "블루투스 입력장치 설정이 올바르지 않습니다.\n" +
-                            "장치 초기화 > 블루투스 키보드 장치 연결 > 장치 재설정하세요",
-                    Toast.LENGTH_SHORT
-                ).show()
+//                Toast.makeText(
+//                    applicationContext,
+//                    "블루투스 입력장치 설정이 올바르지 않습니다.\n" +
+//                            "장치 초기화 > 블루투스 키보드 장치 연결 > 장치 재설정하세요",
+//                    Toast.LENGTH_SHORT
+//                ).show()
+                carStatus.setBtStatus(false)
             }
         }
 
 
     }
 
-    private var bleService: BleService? = null
+    var bleService: BleService? = null
     private var isBoundBleService = false
 
     private val serviceConnection = object : ServiceConnection {
@@ -160,13 +162,19 @@ class MainActivity : ComponentActivity() {
             selectedBLEDeviceName = SettingPreference.getDeviceName(this) ?: ""
             selectedBLEDeviceAddress = SettingPreference.getAddress(this) ?: ""
 
+//            carStatus.setBtStatus(false)
+
             if (selectedBLEDeviceName.isEmpty() || selectedBLEDeviceAddress.isEmpty()) {
-                Toast.makeText(
-                    this,
-                    "블루투스 장치가 선택되지 않았습니다. 설정에서 장치를 선택해주세요.",
-                    Toast.LENGTH_LONG
-                ).show()
+                carStatus.setBtStatus(false);
+            } else {
+                carStatus.setBtStatus(true);
             }
+//                Toast.makeText(
+//                    this,
+//                    "블루투스 장치가 선택되지 않았습니다. 설정에서 장치를 선택해주세요.",
+//                    Toast.LENGTH_LONG
+//                ).show()
+//            }
         }
 //        else {
 //            // 선택된 BLE 장치 정보로 서비스 시작

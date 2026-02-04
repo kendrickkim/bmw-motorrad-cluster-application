@@ -31,7 +31,7 @@ fun SectionVoltage
 			modifier = Modifier
 				.fillMaxSize()
 				.padding(top = 20.designedDp()),
-			horizontalAlignment = Alignment.End
+			horizontalAlignment = Alignment.Start
 		)
 		{
 			val voltage = carStatus.voltage.value.toFloat()

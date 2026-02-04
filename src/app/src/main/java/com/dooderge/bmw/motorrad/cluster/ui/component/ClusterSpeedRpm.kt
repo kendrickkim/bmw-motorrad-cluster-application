@@ -136,7 +136,7 @@ fun ClusterSpeedRpm(
 							)
 							{
 								ClusterText(
-									text = "888",
+									text = "${carStatus.speed.value}",
 									fontSize = 210f,
 									fontWeight = FontWeight.ExtraBold,
 									color = Color.White
@@ -217,9 +217,7 @@ fun ClusterSpeedRpm(
 					)
 				}
 
-
 			}
-
 		}
 	}
 }

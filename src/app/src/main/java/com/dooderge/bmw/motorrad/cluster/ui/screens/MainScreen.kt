@@ -78,371 +78,377 @@ import kotlin.random.Random
 
 
 data class HeaderInfo(
-	var strNetworkInfo: MutableState<String> = mutableStateOf(""),
-	var strTimeInfo: MutableState<String> = mutableStateOf(""),
-	var strDateInfo: MutableState<String> = mutableStateOf(""),
-	var repeaterLeft: MutableState<Int> = mutableIntStateOf(0),
-	var repeaterRight: MutableState<Int> = mutableIntStateOf(0)
+    var strNetworkInfo: MutableState<String> = mutableStateOf(""),
+    var strTimeInfo: MutableState<String> = mutableStateOf(""),
+    var strDateInfo: MutableState<String> = mutableStateOf(""),
+    var repeaterLeft: MutableState<Int> = mutableIntStateOf(0),
+    var repeaterRight: MutableState<Int> = mutableIntStateOf(0)
 )
 
 fun fanShape(targetDegree: Float) = object : Shape {
-	override fun createOutline(
-		size: Size,
-		layoutDirection: LayoutDirection,
-		density: Density
-	): androidx.compose.ui.graphics.Outline {
-		val path = Path().apply {
-			// 1. 부채꼴의 꼭짓점을 이미지의 정중앙으로 이동합니다.
-			moveTo(size.width / 2, size.height / 2)
+    override fun createOutline(
+        size: Size,
+        layoutDirection: LayoutDirection,
+        density: Density
+    ): androidx.compose.ui.graphics.Outline {
+        val path = Path().apply {
+            // 1. 부채꼴의 꼭짓점을 이미지의 정중앙으로 이동합니다.
+            moveTo(size.width / 2, size.height / 2)
 
-			// 2. 호(arc)를 그릴 사각형(Rect)을 정의합니다.
-			//    - Rect의 크기를 2배로 하여 중앙점을 기준으로 전체 이미지를 덮도록 합니다.
-			//    - Rect의 시작점을 (0,0)으로 설정합니다.
-			val rect = Rect(Offset.Zero, size)
+            // 2. 호(arc)를 그릴 사각형(Rect)을 정의합니다.
+            //    - Rect의 크기를 2배로 하여 중앙점을 기준으로 전체 이미지를 덮도록 합니다.
+            //    - Rect의 시작점을 (0,0)으로 설정합니다.
+            val rect = Rect(Offset.Zero, size)
 
-			// 3. 중앙점에서 시작하여 호의 시작점까지 선을 긋고, 호를 그립니다.
-			arcTo(
-				rect = rect,
-				startAngleDegrees = -270f,           // 0도 (3시 방향) 에서 시작
-				sweepAngleDegrees = targetDegree, // 입력받은 각도만큼 그림
-				forceMoveTo = false               // 현재 위치에서 호의 시작점까지 선을 연결함
-			)
+            // 3. 중앙점에서 시작하여 호의 시작점까지 선을 긋고, 호를 그립니다.
+            arcTo(
+                rect = rect,
+                startAngleDegrees = -270f,           // 0도 (3시 방향) 에서 시작
+                sweepAngleDegrees = targetDegree, // 입력받은 각도만큼 그림
+                forceMoveTo = false               // 현재 위치에서 호의 시작점까지 선을 연결함
+            )
 
-			// 4. 경로를 닫아 호의 끝점에서 중앙점으로 선을 연결합니다.
-			close()
-		}
-		return androidx.compose.ui.graphics.Outline.Generic(path)
-	}
+            // 4. 경로를 닫아 호의 끝점에서 중앙점으로 선을 연결합니다.
+            close()
+        }
+        return androidx.compose.ui.graphics.Outline.Generic(path)
+    }
 }
 
 @Composable
 fun MainScreen(
-	onPermissionsGranted: () -> Unit,
-	viewModel: MainViewModel = viewModel(),
-	onAndroidAutoClick: () -> Unit = {},
-	onSettingsClick: () -> Unit = {},
-	onLauncherClick: () -> Unit = {},
-	context: Context,
-	carStatus: CarStatus
+    onPermissionsGranted: () -> Unit,
+    viewModel: MainViewModel = viewModel(),
+    onAndroidAutoClick: () -> Unit = {},
+    onSettingsClick: () -> Unit = {},
+    onLauncherClick: () -> Unit = {},
+    context: Context,
+    carStatus: CarStatus
 ) {
 
-	var strMutTime by remember { mutableStateOf("00:00:00") }
-	var strMutDate by remember { mutableStateOf("2026-01-01") }
-	var strWifiName by remember { mutableStateOf("Unknown") }
-	var strBtDeviceName by remember { mutableStateOf("NONE") }
+    var strMutTime by remember { mutableStateOf("00:00:00") }
+    var strMutDate by remember { mutableStateOf("2026-01-01") }
+    var strWifiName by remember { mutableStateOf("Unknown") }
+    var strBtDeviceName by remember { mutableStateOf("NONE") }
 
-	var sizeScreen by remember { mutableStateOf(IntSize(1, 1)) }
-	var sizeBackgroundImage by remember { mutableStateOf(IntSize(1, 1)) }
-	var sizeDisplayBackgroundImage by remember { mutableStateOf(IntSize(1, 1)) }
-	var sizeRpmGuageImage by remember { mutableStateOf(IntSize(1, 1)) }
-	var sizeDisplayRpmGuageImage by remember { mutableStateOf(IntSize(1, 1)) }
-	var ratioImageAndScreen by remember { mutableFloatStateOf(1f) }
+    var sizeScreen by remember { mutableStateOf(IntSize(1, 1)) }
+    var sizeBackgroundImage by remember { mutableStateOf(IntSize(1, 1)) }
+    var sizeDisplayBackgroundImage by remember { mutableStateOf(IntSize(1, 1)) }
+    var sizeRpmGuageImage by remember { mutableStateOf(IntSize(1, 1)) }
+    var sizeDisplayRpmGuageImage by remember { mutableStateOf(IntSize(1, 1)) }
+    var ratioImageAndScreen by remember { mutableFloatStateOf(1f) }
 
-	val scaleImage = remember {
-		mutableFloatStateOf(1f)
-	}
+    val scaleImage = remember {
+        mutableFloatStateOf(1f)
+    }
 
-	val headerInfo = remember { HeaderInfo() }
+    val headerInfo = remember { HeaderInfo() }
 
-	// 리피터 변화시 작성 필요
+
+    // 리피터 변화시 작성 필요
 //	val headerInfo : HeaderInfo(repeater)
 //	{
 //
 //	}
 
-	LaunchedEffect(Unit) {
-		val timerRefreshDateTime = Timer()
+    LaunchedEffect(Unit) {
+        val timerRefreshDateTime = Timer()
 
-		timerRefreshDateTime.schedule(object : TimerTask() {  // 시간 / 날짜 리프레시 타이머
-			override fun run() {
-				strMutTime = java.text.SimpleDateFormat(
-					"HH:mm:ss",
-					java.util.Locale.getDefault()
-				).format(java.util.Date())
+        timerRefreshDateTime.schedule(
+            object : TimerTask() {  // 시간 / 날짜 리프레시 타이머
+                override fun run() {
+                    strMutTime = java.text.SimpleDateFormat(
+                        "HH:mm:ss",
+                        java.util.Locale.getDefault()
+                    ).format(java.util.Date())
 
-				strMutDate = java.text.SimpleDateFormat(
-					"yyyy-MM-dd",
-					java.util.Locale.getDefault()
-				).format(java.util.Date())
+                    strMutDate = java.text.SimpleDateFormat(
+                        "yyyy-MM-dd",
+                        java.util.Locale.getDefault()
+                    ).format(java.util.Date())
 
-				val wifiManager = context.getSystemService(Context.WIFI_SERVICE) as WifiManager
-				val wifiInfo = wifiManager.connectionInfo
-				strWifiName = wifiInfo.ssid
+                    val wifiManager = context.getSystemService(Context.WIFI_SERVICE) as WifiManager
+                    val wifiInfo = wifiManager.connectionInfo
+                    strWifiName = wifiInfo.ssid
+                    strWifiName = strWifiName.replace("\"", "")
 
-				val btDeviceName: String? = SettingPreference.getDeviceName(context)
-				if (btDeviceName == null || btDeviceName.isEmpty()) btDeviceName == "[W]NONE"
-				strBtDeviceName = btDeviceName.toString()
-				if (strBtDeviceName == null || strBtDeviceName.isEmpty()) strBtDeviceName =
-					"[BT]NONE"
+                    val btDeviceName: String? = SettingPreference.getDeviceName(context)
+                    if (btDeviceName == null || btDeviceName.isEmpty()) btDeviceName == "[W]NONE"
+                    strBtDeviceName = btDeviceName.toString()
+                    if (strBtDeviceName == null || strBtDeviceName.isEmpty() || strBtDeviceName == "null") strBtDeviceName =
+                        "[BT]NONE"
 
-				headerInfo.strTimeInfo.value = strMutTime
-				headerInfo.strDateInfo.value = strMutDate
-				headerInfo.strNetworkInfo.value = strWifiName + " / " + strBtDeviceName
-
-
-			}
-		}, 0, 100)
-
-		var tmrChangeRpm = Timer()
-		tmrChangeRpm.schedule(object : TimerTask() {
-			override fun run() {
-				carStatus.rpm.value = Random.nextInt(0, 14000)
-			}
-		}, 0, 100)
-	}
-
-	LaunchedEffect(sizeScreen)
-	{
-		if (sizeScreen.width > 1) {
-
-			if (sizeBackgroundImage.width == 1) {
-				val options = android.graphics.BitmapFactory.Options().apply {
-					inJustDecodeBounds = true
-				}
-
-				android.graphics.BitmapFactory.decodeResource(
-					context.resources,
-					R.drawable.cluster_background_black,
-					options
-				)
-
-				sizeBackgroundImage = IntSize(options.outWidth, options.outHeight)
-
-				android.graphics.BitmapFactory.decodeResource(
-					context.resources,
-					R.drawable.rpm_guage,
-					options
-				)
-
-				sizeRpmGuageImage = IntSize(options.outWidth, options.outHeight)
-			}
+                    headerInfo.strTimeInfo.value = strMutTime
+                    headerInfo.strDateInfo.value = strMutDate
+                    headerInfo.strNetworkInfo.value = strWifiName + " / " + strBtDeviceName
 
 
-			val ratioScreen = sizeScreen.width.toFloat() / sizeScreen.height.toFloat()
-			val ratioBackgroundImage =
-				sizeBackgroundImage.width.toFloat() / sizeBackgroundImage.height.toFloat()
+                }
+            }, 0, 100
+        )
+//        var tmrChangeRpm = Timer()
+//        tmrChangeRpm.schedule(object : TimerTask() {
+//            override fun run() {
+//                carStatus.rpm.value = Random.nextInt(0, 14000)
+//            }
+//        }, 0, 100)
+    }
 
-			var ratioImageSize = 1f
-			if (ratioScreen < ratioBackgroundImage) {
-				ratioImageSize = sizeScreen.width.toFloat() / sizeBackgroundImage.width.toFloat()
-				setDesignedSizeByWidth(sizeScreen.width.toFloat())
+    LaunchedEffect(sizeScreen)
+    {
+        if (sizeScreen.width > 1) {
 
-			} else {
-				ratioImageSize = sizeScreen.height.toFloat() / sizeBackgroundImage.height.toFloat()
-				setDesginedSizeByHeight(sizeScreen.height.toFloat())
-			}
+            if (sizeBackgroundImage.width == 1) {
+                val options = android.graphics.BitmapFactory.Options().apply {
+                    inJustDecodeBounds = true
+                }
 
-			sizeDisplayBackgroundImage =
-				IntSize(
-					(sizeBackgroundImage.width.toFloat() * ratioImageSize).toInt(),
-					(sizeBackgroundImage.height.toFloat() * ratioImageSize).toInt()
-				)
+                android.graphics.BitmapFactory.decodeResource(
+                    context.resources,
+                    R.drawable.cluster_background_black,
+                    options
+                )
 
+                sizeBackgroundImage = IntSize(options.outWidth, options.outHeight)
 
-			scaleImage.floatValue = ratioImageSize
+                android.graphics.BitmapFactory.decodeResource(
+                    context.resources,
+                    R.drawable.rpm_guage,
+                    options
+                )
 
-			sizeDisplayRpmGuageImage = IntSize(
-				(sizeRpmGuageImage.width * scaleImage.floatValue).toInt(),
-				(sizeRpmGuageImage.height * scaleImage.floatValue).toInt()
-			)
-		}
-
-	}
-
-	CompositionLocalProvider(
-		LocalDensity provides Density(
-			density = LocalDensity.current.density,
-			fontScale = 1f
-		)
-	) {
-		Column(
-			modifier = Modifier
-				.fillMaxSize()
-				.background(Color.Black)
-				.onSizeChanged({
-					sizeScreen = IntSize(it.width, it.height)
-
-				}), verticalArrangement = Arrangement.Center,
-			horizontalAlignment = Alignment.CenterHorizontally
-		)
-		{
-			Box(    // 화면 전체 background
-				modifier = Modifier
-					.fillMaxSize()
-					.drawBehind {
-						// 화면의 가로, 세로 크기를 가져옵니다.
-						val screenWidth = this.size.width
-						val screenHeight = this.size.height
-
-						// 타원의 반지름을 설정합니다. 가로/세로 비율에 따라 타원이 됩니다.
-						// 가로 길이를 기준으로 반지름을 설정하고, 세로 길이는 화면 비율에 맞춥니다.
-						val radiusX = screenWidth
-						val radiusY = screenHeight
-
-						// 방사형 그라데이션 브러시를 생성합니다.
-						// Canvas 내부에서 사용할 때는 center와 radius를 drawOval 내부에서 처리하므로
-						// 브러시 자체에는 지정할 필요가 없습니다.
-						val radialBrush = Brush.radialGradient(
-							colorStops = arrayOf(
-								0.0f to Color(0xff383838),
-								0.8f to Color(0xff0f0f0f),
-								1.0f to Color.Black // 가장자리를 더 어둡게 처리
-							),
-							// 중심은 drawOval에서 지정
-							center = this.center,
-							// 반지름은 더 큰 값을 기준으로 설정하여 타원을 완전히 덮도록 합니다.
-							radius = kotlin.comparisons.maxOf(radiusX, radiusY) * 0.5f
-						)
-
-						// 1. 검은색 배경을 먼저 전체에 그립니다.
-						drawRect(color = Color.Black)
-
-						// 2. 그 위에 타원형 그라데이션을 그립니다.
-						drawOval(
-							brush = radialBrush,
-							// 타원의 위치와 크기를 지정합니다.
-							topLeft = Offset(center.x - radiusX, center.y - radiusY),
-							size = androidx.compose.ui.geometry.Size(radiusX * 2, radiusY * 2)
-						)
-					},
-				contentAlignment = Alignment.Center
-			)
-			{
-				Box(            // 그림 사이즈에 맞춘 box
-					modifier = Modifier
-						.size(
-							sizeDisplayBackgroundImage.width.pxToDp(),
-							sizeDisplayBackgroundImage.height.pxToDp()
-						),
-					contentAlignment = Alignment.Center
-				)
-				{
-					Box(
-						modifier = Modifier
-							.fillMaxSize()
-					)// 클러스터 디자인 background
-					{
-						Image(
-							contentDescription = "Cluster Background",
-							painter = painterResource(id = R.drawable.cluster_background_black),
-							modifier = Modifier
-								.fillMaxSize()
-						)
-
-						HeaderSection(
-							carStatus = carStatus,
-							headerInfo = headerInfo,
-						)
-
-						Box(
-							modifier = Modifier
-								.fillMaxSize()
-								.padding(bottom = 50.designedDp()),
-							contentAlignment = Alignment.BottomCenter
-						)
-						{
-							ComponentGearIndicator(carStatus, 210, 210, onLongClick = {
-								CoroutineScope(Dispatchers.Main).launch {
-									val wifiSettingsIntent =
-										Intent(Settings.ACTION_WIFI_SETTINGS)
-									wifiSettingsIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-									context.startActivity(wifiSettingsIntent)
-								}
-							})
-						}
-
-						ClusterSpeedRpm(
-							width = sizeDisplayRpmGuageImage.width,
-							height = sizeDisplayRpmGuageImage.height,
-							carStatus = carStatus,
-							scale = scaleImage.floatValue
-						)
-					}
-
-					// Section Text
-					Box(
-						modifier = Modifier
-							.fillMaxSize()
-					)
-					{
-						@Composable
-						fun SectionText(
-							text: String,
-							padding: PaddingValues,
-							align: Alignment = Alignment.TopStart
-						) {
-							Box(
-								modifier = Modifier
-									.fillMaxSize()
-									.padding(padding),
-								contentAlignment = align
-							)
-							{
-								Text(
-									text = text,
-									fontSize = 17.sp,
-									color = Color(0xff4b4b4b),
-									fontWeight = FontWeight.ExtraBold,
-								)
-							}
-						}
+                sizeRpmGuageImage = IntSize(options.outWidth, options.outHeight)
+            }
 
 
-						data class SectionInfo(
-							val text: String,
-							val padding: PaddingValues,
-							val alignment: Alignment = Alignment.TopStart
-						)
+            val ratioScreen = sizeScreen.width.toFloat() / sizeScreen.height.toFloat()
+            val ratioBackgroundImage =
+                sizeBackgroundImage.width.toFloat() / sizeBackgroundImage.height.toFloat()
 
-						val top1 = 172.designedDp()
-						val top2 = 466.designedDp()
-						val top3 = 759.designedDp()
-						val left = 19.designedDp()
-						val right1 = 19.designedDp()
-						val right2 = 421.designedDp()
+            var ratioImageSize = 1f
+            if (ratioScreen < ratioBackgroundImage) {
+                ratioImageSize = sizeScreen.width.toFloat() / sizeBackgroundImage.width.toFloat()
+                setDesignedSizeByWidth(sizeScreen.width.toFloat())
 
-						val status = arrayOf(
-							SectionInfo(
-								"Distance",
-								PaddingValues(start = left, top = top1),
-							),
-							SectionInfo(
-								"Time",
-								PaddingValues(end = right1, top = top1),
-								Alignment.TopEnd
-							),
-							SectionInfo(
-								"Fuel Guage",
-								PaddingValues(end = right2, top = top1),
-								Alignment.TopEnd
-							),
+            } else {
+                ratioImageSize = sizeScreen.height.toFloat() / sizeBackgroundImage.height.toFloat()
+                setDesginedSizeByHeight(sizeScreen.height.toFloat())
+            }
 
-							SectionInfo(
-								"Status",
-								PaddingValues(start = left, top = top2),
-								Alignment.TopStart
-							),
-							SectionInfo(
-								"Weather",
-								PaddingValues(end = right1, top = top2),
-								Alignment.TopEnd
-							),
+            sizeDisplayBackgroundImage =
+                IntSize(
+                    (sizeBackgroundImage.width.toFloat() * ratioImageSize).toInt(),
+                    (sizeBackgroundImage.height.toFloat() * ratioImageSize).toInt()
+                )
 
-							SectionInfo(
-								"Apps",
-								PaddingValues(start = left, top = top3),
-								Alignment.TopStart
-							),
-							SectionInfo(
-								"Voltage",
-								PaddingValues(end = right1, top = top3),
-								Alignment.TopEnd
-							),
-							SectionInfo(
-								"Temp.",
-								PaddingValues(end = right2, top = top3),
-								Alignment.TopEnd
-							),
+
+            scaleImage.floatValue = ratioImageSize
+
+            sizeDisplayRpmGuageImage = IntSize(
+                (sizeRpmGuageImage.width * scaleImage.floatValue).toInt(),
+                (sizeRpmGuageImage.height * scaleImage.floatValue).toInt()
+            )
+        }
+
+    }
+
+    CompositionLocalProvider(
+        LocalDensity provides Density(
+            density = LocalDensity.current.density,
+            fontScale = 1f
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black)
+                .onSizeChanged({
+                    sizeScreen = IntSize(it.width, it.height)
+
+                }), verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        )
+        {
+            Box(    // 화면 전체 background
+                modifier = Modifier
+                    .fillMaxSize()
+                    .drawBehind {
+                        // 화면의 가로, 세로 크기를 가져옵니다.
+                        val screenWidth = this.size.width
+                        val screenHeight = this.size.height
+
+                        // 타원의 반지름을 설정합니다. 가로/세로 비율에 따라 타원이 됩니다.
+                        // 가로 길이를 기준으로 반지름을 설정하고, 세로 길이는 화면 비율에 맞춥니다.
+                        val radiusX = screenWidth
+                        val radiusY = screenHeight
+
+                        // 방사형 그라데이션 브러시를 생성합니다.
+                        // Canvas 내부에서 사용할 때는 center와 radius를 drawOval 내부에서 처리하므로
+                        // 브러시 자체에는 지정할 필요가 없습니다.
+                        val radialBrush = Brush.radialGradient(
+                            colorStops = arrayOf(
+                                0.0f to Color(0xff383838),
+                                0.8f to Color(0xff0f0f0f),
+                                1.0f to Color.Black // 가장자리를 더 어둡게 처리
+                            ),
+                            // 중심은 drawOval에서 지정
+                            center = this.center,
+                            // 반지름은 더 큰 값을 기준으로 설정하여 타원을 완전히 덮도록 합니다.
+                            radius = kotlin.comparisons.maxOf(radiusX, radiusY) * 0.5f
+                        )
+
+                        // 1. 검은색 배경을 먼저 전체에 그립니다.
+                        drawRect(color = Color.Black)
+
+                        // 2. 그 위에 타원형 그라데이션을 그립니다.
+                        drawOval(
+                            brush = radialBrush,
+                            // 타원의 위치와 크기를 지정합니다.
+                            topLeft = Offset(center.x - radiusX, center.y - radiusY),
+                            size = androidx.compose.ui.geometry.Size(radiusX * 2, radiusY * 2)
+                        )
+                    },
+                contentAlignment = Alignment.Center
+            )
+            {
+                Box(            // 그림 사이즈에 맞춘 box
+                    modifier = Modifier
+                        .size(
+                            sizeDisplayBackgroundImage.width.pxToDp(),
+                            sizeDisplayBackgroundImage.height.pxToDp()
+                        ),
+                    contentAlignment = Alignment.Center
+                )
+                {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                    )// 클러스터 디자인 background
+                    {
+                        Image(
+                            contentDescription = "Cluster Background",
+                            painter = painterResource(id = R.drawable.cluster_background_black),
+                            modifier = Modifier
+                                .fillMaxSize()
+                        )
+
+                        HeaderSection(
+                            carStatus = carStatus,
+                            headerInfo = headerInfo,
+                        )
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(bottom = 50.designedDp()),
+                            contentAlignment = Alignment.BottomCenter
+                        )
+                        {
+                            ComponentGearIndicator(carStatus, 210, 210, onLongClick = {
+                                CoroutineScope(Dispatchers.Main).launch {
+                                    val wifiSettingsIntent =
+                                        Intent(Settings.ACTION_WIFI_SETTINGS)
+                                    wifiSettingsIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    context.startActivity(wifiSettingsIntent)
+                                }
+                            })
+                        }
+
+                        ClusterSpeedRpm(
+                            width = sizeDisplayRpmGuageImage.width,
+                            height = sizeDisplayRpmGuageImage.height,
+                            carStatus = carStatus,
+                            scale = scaleImage.floatValue
+                        )
+                    }
+
+                    // Section Text
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                    )
+                    {
+                        @Composable
+                        fun SectionText(
+                            text: String,
+                            padding: PaddingValues,
+                            align: Alignment = Alignment.TopStart
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(padding),
+                                contentAlignment = align
+                            )
+                            {
+                                Text(
+                                    text = text,
+                                    fontSize = 17.sp,
+                                    color = Color(0xff4b4b4b),
+                                    fontWeight = FontWeight.ExtraBold,
+                                )
+                            }
+                        }
+
+
+                        data class SectionInfo(
+                            val text: String,
+                            val padding: PaddingValues,
+                            val alignment: Alignment = Alignment.TopStart
+                        )
+
+                        val top1 = 162.designedDp()
+                        val top2 = 456.designedDp()
+                        val top3 = 749.designedDp()
+                        val left = 19.designedDp()
+                        val left1 = 420.designedDp()
+                        val right1 = 19.designedDp()
+                        val right2 = 421.designedDp()
+
+                        val status = arrayOf(
+                            SectionInfo(
+                                "Distance",
+                                PaddingValues(start = left, top = top1),
+                            ),
+                            SectionInfo(
+                                "Time",
+                                PaddingValues(end = right1, top = top1),
+                                Alignment.TopEnd
+                            ),
+                            SectionInfo(
+                                "Fuel Guage",
+                                PaddingValues(end = right2, top = top1),
+                                Alignment.TopEnd
+                            ),
+
+                            SectionInfo(
+                                "Status",
+                                PaddingValues(start = left, top = top2),
+                                Alignment.TopStart
+                            ),
+                            SectionInfo(
+                                "Weather",
+                                PaddingValues(end = right1, top = top2),
+                                Alignment.TopEnd
+                            ),
+
+
+                            SectionInfo(
+                                "Voltage",
+                                PaddingValues(start = left, top = top3),
+                                Alignment.TopStart
+                            ),
+                            SectionInfo(
+                                "Temp.",
+                                PaddingValues(start = left1, top = top3),
+                                Alignment.TopStart
+                            ),
+
+                            SectionInfo(
+                                "Apps",
+                                PaddingValues(end = right1, top = top3),
+                                Alignment.TopEnd
+                            ),
 //
 //                            SectionInfo(
 //                                "Time",
@@ -450,9 +456,9 @@ fun MainScreen(
 //                                Alignment.TopEnd
 //                            ),
 
-						)
+                        )
 
-						status.forEach { s ->
+                        status.forEach { s ->
 
 //                            val newPadding = PaddingValues(
 //                                s.padding.calculateStartPadding(LayoutDirection.Ltr) * scaleImage.value,
@@ -461,99 +467,99 @@ fun MainScreen(
 //                                s.padding.calculateBottomPadding() * scaleImage.value,
 //                            )
 
-							SectionText(
-								text = s.text,
-								padding = s.padding,
-								align = s.alignment
-							)
-						}
-					}
+                            SectionText(
+                                text = s.text,
+                                padding = s.padding,
+                                align = s.alignment
+                            )
+                        }
+                    }
 
-					// 클러스터 텍스트 정보
-					Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopStart)
-					{
-						Box(
-							modifier = Modifier.fillMaxSize(),
-							contentAlignment = Alignment.TopStart
-						)
-						{
-							SectionDistance(
-								modifier = Modifier
-									.padding(start = 60.designedDp(), top = 232.designedDp())
-									.size(554.designedDp(), 161.designedDp()),
-								carStatus = carStatus
-							)
+                    // 클러스터 텍스트 정보
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopStart)
+                    {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.TopStart
+                        )
+                        {
+                            SectionDistance(
+                                modifier = Modifier
+                                    .padding(start = 60.designedDp(), top = 232.designedDp())
+                                    .size(554.designedDp(), 161.designedDp()),
+                                carStatus = carStatus
+                            )
 
-							SectionStatus(
-								modifier = Modifier
-									.padding(start = 30.designedDp(), top = 524.designedDp())
-									.size(554.designedDp(), 161.designedDp()),
-								carStatus = carStatus
-							)
+                            SectionStatus(
+                                modifier = Modifier
+                                    .padding(start = 30.designedDp(), top = 524.designedDp())
+                                    .size(554.designedDp(), 161.designedDp()),
+                                carStatus = carStatus
+                            )
+
+                            SectionVoltage(
+                                modifier = Modifier
+                                    .padding(start = 40.designedDp(), top = 822.designedDp())
+                                    .size(316.designedDp(), 161.designedDp()),
+                                carStatus = carStatus,
+                            )
+
+                            SectionCoolantTemp(
+                                modifier = Modifier
+                                    .padding(start = 453.designedDp(), top = 822.designedDp())
+                                    .size(226.designedDp(), 161.designedDp()),
+                                carStatus = carStatus,
+                            )
+                        }
+
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopEnd)
+                        {
+
+                            SectionTime(
+                                modifier = Modifier
+                                    .padding(end = 28.designedDp(), top = 232.designedDp())
+                                    .size(316.designedDp(), 161.designedDp()),
+                                carStatus = carStatus,
+                                alignment = Alignment.TopEnd
+                            )
+
+                            SectionFuelGuage(
+                                modifier = Modifier
+                                    .padding(end = 433.designedDp(), top = 232.designedDp())
+                                    .size(226.designedDp(), 161.designedDp()),
+                                carStatus = carStatus,
+                                alignment = Alignment.TopEnd
+                            )
+
+                            SectionWeather(
+                                modifier = Modifier
+                                    .padding(end = 28.designedDp(), top = 524.designedDp())
+                                    .size(554.designedDp(), 150.designedDp()),
+                                carStatus = carStatus,
+                                alignment = Alignment.TopEnd
+                            )
+
+                            SectionApps(
+                                modifier = Modifier
+                                    .padding(end = 30.designedDp(), top = 822.designedDp())
+                                    .size(600.designedDp(), 150.designedDp()),
+                                carStatus = carStatus,
+                                alignment = Alignment.TopEnd,
+                                onApplicationEvent = {
+                                    if (it == "setting") {
+                                        onSettingsClick()
+                                    } else if (it == "android_auto") {
+                                        onAndroidAutoClick()
+                                    } else if (it == "drawer") {
+                                        onLauncherClick()
+                                    }
+                                }
+                            )
 
 
-							SectionApps(
-								modifier = Modifier
-									.padding(start = 30.designedDp(), top = 822.designedDp())
-									.size(600.designedDp(), 150.designedDp()),
-								carStatus = carStatus,
-								onApplicationEvent = {
-									if (it == "setting") {
-										onSettingsClick()
-									} else if (it == "android_auto") {
-										onAndroidAutoClick()
-									} else if (it == "drawer") {
-										//
-									}
-								}
-							)
-						}
+                        }
 
-						Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopEnd)
-						{
-
-							SectionTime(
-								modifier = Modifier
-									.padding(end = 28.designedDp(), top = 232.designedDp())
-									.size(316.designedDp(), 161.designedDp()),
-								carStatus = carStatus,
-								alignment = Alignment.TopEnd
-							)
-
-							SectionFuelGuage(
-								modifier = Modifier
-									.padding(end = 433.designedDp(), top = 232.designedDp())
-									.size(226.designedDp(), 161.designedDp()),
-								carStatus = carStatus,
-								alignment = Alignment.TopEnd
-							)
-
-							SectionWeather(
-								modifier = Modifier
-									.padding(end = 28.designedDp(), top = 524.designedDp())
-									.size(554.designedDp(), 150.designedDp()),
-								carStatus = carStatus,
-								alignment = Alignment.TopEnd
-							)
-
-							SectionVoltage(
-								modifier = Modifier
-									.padding(end = 28.designedDp(), top = 822.designedDp())
-									.size(316.designedDp(), 161.designedDp()),
-								carStatus = carStatus,
-								alignment = Alignment.TopEnd
-							)
-
-							SectionCoolantTemp(
-								modifier = Modifier
-									.padding(end = 433.designedDp(), top = 822.designedDp())
-									.size(226.designedDp(), 161.designedDp()),
-								carStatus = carStatus,
-								alignment = Alignment.TopEnd
-							)
-						}
-
-					}
+                    }
 
 
 //              Text(
@@ -658,9 +664,9 @@ fun MainScreen(
 //                ComponentCluster(context = context, carStatus = carStatus)
 //              }
 //            }
-				}
-			}
-		}
+                }
+            }
+        }
 
 //		Box(
 //			modifier = Modifier.fillMaxSize(),
@@ -689,87 +695,87 @@ fun MainScreen(
 //					)
 //			}
 //		}
-	}
+    }
 }
 
 @Composable
 fun HeaderSection(
-	modifier: Modifier = Modifier,
-	carStatus: CarStatus,
-	headerInfo: HeaderInfo
+    modifier: Modifier = Modifier,
+    carStatus: CarStatus,
+    headerInfo: HeaderInfo
 ) {
-	Box(
-		modifier = Modifier
-			.fillMaxWidth()
-			.height(161.designedDp())
-	)
-	{
-		Box(
-			modifier = Modifier.fillMaxSize(),
-			contentAlignment = Alignment.CenterStart
-		)
-		{
-			ClusterText(text = headerInfo.strNetworkInfo.value, 50f, FontWeight.ExtraBold)
-		}
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(161.designedDp())
+    )
+    {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.CenterStart
+        )
+        {
+            ClusterText(text = headerInfo.strNetworkInfo.value, 50f, FontWeight.ExtraBold)
+        }
 
 
-		Box(
-			modifier = Modifier.fillMaxSize(),
-			contentAlignment = Alignment.Center
-		)
-		{
-			ClusterText(headerInfo.strTimeInfo.value, 80f, FontWeight.ExtraBold)
-		}
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        )
+        {
+            ClusterText(headerInfo.strTimeInfo.value, 80f, FontWeight.ExtraBold)
+        }
 
-		Box(
-			modifier = Modifier.fillMaxSize(),
-			contentAlignment = Alignment.CenterEnd
-		)
-		{
-			ClusterText(headerInfo.strDateInfo.value, 50f, FontWeight.ExtraBold)
-		}
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.CenterEnd
+        )
+        {
+            ClusterText(headerInfo.strDateInfo.value, 50f, FontWeight.ExtraBold)
+        }
 
-		Box(
-			modifier = Modifier
-				.fillMaxSize()
-				.padding(start = 550.designedDp()),
-			contentAlignment = Alignment.CenterStart
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(start = 600.designedDp()),
+            contentAlignment = Alignment.CenterStart
 
-		)
-		{
-			Image(
-				contentDescription = "Repeater Left",
-				painter = painterResource(id = R.drawable.repeater_off),
-				modifier = Modifier
-					.size(
-						111.designedDp(),
-						125.designedDp(),
-					)
-					.rotate(0f),
-			)
-		}
+        )
+        {
+            Image(
+                contentDescription = "Repeater Left",
+                painter = painterResource(id = R.drawable.repeater_off),
+                modifier = Modifier
+                    .size(
+                        111.designedDp(),
+                        125.designedDp(),
+                    )
+                    .rotate(0f),
+            )
+        }
 
-		Box(
-			modifier = Modifier
-				.fillMaxSize()
-				.padding(end = 550.designedDp()),
-			contentAlignment = Alignment.CenterEnd
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(end = 600.designedDp()),
+            contentAlignment = Alignment.CenterEnd
 
-		)
-		{
-			Image(
-				contentDescription = "Repeater Right",
-				painter = painterResource(id = R.drawable.repeater_off),
-				modifier = Modifier
-					.size(
-						111.designedDp(),
-						125.designedDp(),
-					)
-					.rotate(180f),
-			)
-		}
+        )
+        {
+            Image(
+                contentDescription = "Repeater Right",
+                painter = painterResource(id = R.drawable.repeater_off),
+                modifier = Modifier
+                    .size(
+                        111.designedDp(),
+                        125.designedDp(),
+                    )
+                    .rotate(180f),
+            )
+        }
 
-	}
+    }
 }
 
 

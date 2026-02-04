@@ -61,7 +61,7 @@ fun SectionDistance(
 			)
 			{
 				ClusterText(
-					text = "${12345} Km",
+					text = "${0} Km",
 					fontSize = 75f,
 					fontWeight = FontWeight.ExtraBold,
 					color = textColor

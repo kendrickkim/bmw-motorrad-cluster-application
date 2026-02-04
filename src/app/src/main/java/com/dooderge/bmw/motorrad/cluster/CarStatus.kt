@@ -17,7 +17,8 @@ data class CarStatus(
     var rpm: MutableState<Int> = mutableStateOf(0),
     var voltage: MutableState<Int> = mutableStateOf(0),
     var isIgnitionOn: MutableState<Boolean> = mutableStateOf(false),
-    var coolant_temperature: MutableState<Int> = mutableStateOf(0)
+    var coolant_temperature: MutableState<Int> = mutableStateOf(0),
+    var bt_connection_status: MutableState<Boolean> = mutableStateOf(false)
 ) {
     fun reset() {
         button_repeat_left.value = false
@@ -32,6 +33,7 @@ data class CarStatus(
         voltage.value = 0
         isIgnitionOn.value = false
         coolant_temperature.value = 0
+        bt_connection_status.value = false
     }
 
     fun setButtons(value: Byte) {
@@ -54,11 +56,9 @@ data class CarStatus(
                 voltage.value == other.voltage.value &&
                 isIgnitionOn.value == other.isIgnitionOn.value &&
                 coolant_temperature.value == other.coolant_temperature.value
-
     }
 
     fun copyFrom(other: CarStatus) {
-
         if (button_repeat_left.value != other.button_repeat_left.value)
             button_repeat_left.value = other.button_repeat_left.value
 
@@ -94,7 +94,6 @@ data class CarStatus(
 
         if (coolant_temperature.value != other.coolant_temperature.value)
             coolant_temperature.value = other.coolant_temperature.value
-
     }
 
     fun toJson(): String {
@@ -148,4 +147,10 @@ data class CarStatus(
             }
         }
     }
+
+    fun setBtStatus(status: Boolean) {
+        if (bt_connection_status.value != status)
+            bt_connection_status.value = status
+    }
+
 }
