@@ -188,7 +188,7 @@ fun MainScreen(
 			override fun run() {
 				carStatus.rpm.value = Random.nextInt(0, 14000)
 			}
-		}, 0, 1000 * 5)
+		}, 0, 100)
 	}
 
 	LaunchedEffect(sizeScreen)

@@ -37,6 +37,7 @@ import androidx.core.app.NotificationCompat
 import java.util.Timer
 import java.util.TimerTask
 import androidx.core.content.res.ResourcesCompat
+import androidx.core.widget.TextViewCompat
 
 class BleService : Service() {
     companion object {
@@ -128,15 +129,25 @@ class BleService : Service() {
         val speedText = TextView(this).apply {
             text = "0"
             setTextColor(Color.WHITE)
-            textSize = dpToSp(20).toFloat()
+//            textSize = dpToSp(20).toFloat()
             typeface = mFont
-            gravity = Gravity.TOP or Gravity.RIGHT
+            includeFontPadding = false
+//            gravity = Gravity.TOP or Gravity.RIGHT
+//            gravity = Gravity.CENTER
+            gravity = Gravity.RIGHT or Gravity.CENTER_VERTICAL
             textAlignment = View.TEXT_ALIGNMENT_GRAVITY
             includeFontPadding = false
             layoutParams = LinearLayout.LayoutParams(
                 dpToPx(130), dpToPx(70)
             )
-            setPadding(0, dpToPx(-10), 30, 0)
+
+            TextViewCompat.setAutoSizeTextTypeWithDefaults(
+                this,
+                TextView.AUTO_SIZE_TEXT_TYPE_UNIFORM
+            )
+
+//            setPadding(0, dpToPx(-10), 30, 0)
+            setPadding(0, 0, dpToPx(15), 0)
         }
         layout.addView(speedText)
         layout.addView(gearImage)
@@ -361,9 +372,10 @@ class BleService : Service() {
                         dataString += byte.toUnsigendInt().toUByte().toString(16) + " "
                     }
 
-               
+
                     var wheel_rpm: Int = data[5].toUnsigendInt() + data[6].toUnsigendInt() * 256
-                    var speed = (wheel_rpm * BleService.WHEEL_RPM_TO_SPEED).toInt() // 1 RPM = 0.121 km/h
+                    var speed =
+                        (wheel_rpm * BleService.WHEEL_RPM_TO_SPEED).toInt() // 1 RPM = 0.121 km/h
 
                     var rpm = data[7].toUnsigendInt() + data[8].toUnsigendInt() * 256
                     var gear = data[3].toUnsigendInt()
