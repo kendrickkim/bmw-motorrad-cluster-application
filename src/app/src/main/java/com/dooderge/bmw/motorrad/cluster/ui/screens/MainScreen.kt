@@ -180,7 +180,7 @@ fun MainScreen(
 
                     headerInfo.strTimeInfo.value = strMutTime
                     headerInfo.strDateInfo.value = strMutDate
-                    headerInfo.strNetworkInfo.value = strWifiName + " / " + strBtDeviceName
+                    headerInfo.strNetworkInfo.value = strWifiName + "\n" + strBtDeviceName
 
 
                 }
@@ -715,7 +715,7 @@ fun HeaderSection(
             contentAlignment = Alignment.CenterStart
         )
         {
-            ClusterText(text = headerInfo.strNetworkInfo.value, 50f, FontWeight.ExtraBold)
+            ClusterText(text = headerInfo.strNetworkInfo.value, 30f, FontWeight.ExtraBold)
         }
 
 

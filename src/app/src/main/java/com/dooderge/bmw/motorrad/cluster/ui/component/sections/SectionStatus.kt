@@ -77,7 +77,7 @@ fun SectionStatus(
     ) {
         Box(
             modifier = Modifier
-                .size(200.designedDp(), 100.designedDp()),
+                .size(200.designedDp(), 200.designedDp()),
             contentAlignment = Alignment.TopStart
         )
         {
@@ -100,7 +100,7 @@ fun SectionStatus(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 20.designedDp()),
+                .padding(top = 0.designedDp()),
             horizontalAlignment = Alignment.Start,
             verticalArrangement = Arrangement.Center
         )
@@ -112,7 +112,7 @@ fun SectionStatus(
             )
             {
                 StatusBox("Engine", R.drawable.icon_status_eng, 0)
-                StatusBox("Gear", R.drawable.icon_status_warning, 0)
+                StatusBox("Gear", R.drawable.icon_status_cau, 0)
                 StatusBox("BT", R.drawable.icon_status_bt, 0, colorBtStatus)
 
             }

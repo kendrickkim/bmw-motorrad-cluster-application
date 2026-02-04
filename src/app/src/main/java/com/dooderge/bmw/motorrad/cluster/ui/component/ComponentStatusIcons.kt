@@ -38,7 +38,7 @@ fun ComponentStatusIcons(
         R.drawable.icon_status_egn,
         R.drawable.icon_status_lin,
         R.drawable.icon_status_eng,
-        R.drawable.icon_status_warning,
+        R.drawable.icon_status_cau,
         R.drawable.icon_status_bt
     )
 
@@ -50,13 +50,13 @@ fun ComponentStatusIcons(
 
     Column {
         FlowRow(
-            modifier = Modifier.width(170.dp),
+            modifier = Modifier.width(300.dp),
         )
         {
             icon_resources.forEachIndexed({ index, it ->
                 Image(
                     modifier = Modifier
-                        .height(25.dp)
+                        .height(60.dp)
                         .padding(end = 2.dp, bottom = 2.dp),
                     painter = painterResource(id = it),
                     contentDescription = "status_icon" + index.toString(),
@@ -73,7 +73,7 @@ fun ComponentStatusIcons(
             var color = Color(0xffAA0000)
 
             Image(
-                modifier = Modifier.height(40.dp),
+                modifier = Modifier.height(60.dp),
                 painter = painterResource(id = R.drawable.icon_battery),
                 contentScale = ContentScale.FillHeight,
                 colorFilter = ColorFilter.tint(color),
