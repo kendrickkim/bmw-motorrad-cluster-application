@@ -65,7 +65,7 @@ fun ClusterSpeedRpm(
 				val rpm = carStatus.rpm.value.toFloat()
 //                val rpm = 11000f
 				if (rpmInner != rpm) {
-					val unitDiff = abs(rpmInner - rpm) / 23
+					val unitDiff = abs(rpmInner - rpm) / 13
 					var _rpm = rpmInner
 					if (rpm > rpmInner) {
 						_rpm = _rpm + unitDiff

@@ -47,7 +47,8 @@ class BleService : Service() {
             "com.dooderge.bmw.motorrad.cluster.CAR_STATUS_CHANGED"
         public const val ACTION_CHECK_INPUT_METHOD =
             "com.dooderge.bmw.motorrad.cluster.CHECK_INPUT_METHOD"
-        public var WHEEL_RPM_TO_SPEED = 0.121f // 1 RPM = 0.121 km/h
+//        public var WHEEL_RPM_TO_SPEED = 0.121f // 1 RPM = 0.121 km/h
+		public var WHEEL_RPM_TO_SPEED = 0.98f
     }
 
     private var windowManager: WindowManager? = null
@@ -80,6 +81,7 @@ class BleService : Service() {
 
         // read wheel RPM to speed factor from settings
         WHEEL_RPM_TO_SPEED = SettingPreference.getWheelRpmToSpeedFactor(this)
+//		WHEEL_RPM_TO_SPEED = 300.0f
 
         // 오버레이 생성 (View 기반)
 
@@ -374,6 +376,7 @@ class BleService : Service() {
 
 
                     var wheel_rpm: Int = data[5].toUnsigendInt() + data[6].toUnsigendInt() * 256
+//					wheel_rpm = 200
                     var speed =
                         (wheel_rpm * BleService.WHEEL_RPM_TO_SPEED).toInt() // 1 RPM = 0.121 km/h
 

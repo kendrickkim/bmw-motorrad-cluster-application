@@ -71,6 +71,7 @@ import com.dooderge.bmw.motorrad.cluster.ui.component.setDesginedSizeByHeight
 import com.dooderge.bmw.motorrad.cluster.viewmodel.MainViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.Timer
 import java.util.TimerTask
@@ -192,6 +193,11 @@ fun MainScreen(
 //                carStatus.rpm.value = Random.nextInt(0, 14000)
 //            }
 //        }, 0, 100)
+
+		delay(500)
+		carStatus.rpm.value = 14000
+		delay(2000)
+		carStatus.rpm.value = 0
     }
 
     LaunchedEffect(sizeScreen)
