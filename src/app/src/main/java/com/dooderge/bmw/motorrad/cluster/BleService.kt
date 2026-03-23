@@ -115,7 +115,7 @@ class BleService : Service() {
                 setStroke(dpToPx(1), Color.argb(100, 255, 255, 255))
             }
             background = drawable
-            setPadding(dpToPx(10), dpToPx(10), dpToPx(10), dpToPx(10))
+            setPadding(dpToPx(5), dpToPx(5), dpToPx(10), dpToPx(5))
         }
 
         val gearImage = ImageView(this).apply {
@@ -123,7 +123,7 @@ class BleService : Service() {
             scaleType = ImageView.ScaleType.FIT_CENTER
             adjustViewBounds = true
             layoutParams = LinearLayout.LayoutParams(
-                dpToPx(70), dpToPx(70)
+                dpToPx(60), dpToPx(60)
             )
         }
         var mFont =
@@ -150,6 +150,30 @@ class BleService : Service() {
 
 //            setPadding(0, dpToPx(-10), 30, 0)
             setPadding(0, 0, dpToPx(15), 0)
+        }
+
+        val rpmText = TextView(this).apply {
+            text = "0"
+            setTextColor(Color.WHITE)
+            typeface = mFont
+            includeFontPadding = false
+//            gravity = Gravity.TOP or Gravity.RIGHT
+//            gravity = Gravity.CENTER
+            gravity = Gravity.RIGHT or Gravity.CENTER_VERTICAL
+            textAlignment = View.TEXT_ALIGNMENT_GRAVITY
+            includeFontPadding = false
+            layoutParams = LinearLayout.LayoutParams(
+                dpToPx(130), dpToPx(70)
+            )
+
+            TextViewCompat.setAutoSizeTextTypeWithDefaults(
+                this,
+                TextView.AUTO_SIZE_TEXT_TYPE_UNIFORM
+            )
+
+//            setPadding(0, dpToPx(-10), 30, 0)
+            setPadding(0, 0, dpToPx(15), 0)
+
         }
         layout.addView(speedText)
         layout.addView(gearImage)

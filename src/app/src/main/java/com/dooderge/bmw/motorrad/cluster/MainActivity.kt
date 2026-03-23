@@ -38,6 +38,8 @@ class MainActivity : ComponentActivity() {
     private var selectedBLEDeviceAddress: String = ""
     private var carStatus = CarStatus()
 
+    private val HEADUNIT_PACKAGE_NAME = "com.andrerinas.headunitrevived" // gb.xxy.hr
+
     private val REQUIRED_PERMISSIONS = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         arrayOf(
             // WiFi 관련 권한
@@ -219,9 +221,7 @@ class MainActivity : ComponentActivity() {
                             startServices()
                         },
                         onAndroidAutoClick = {
-                            val launchIntent =
-                                this.packageManager.getLaunchIntentForPackage("gb.xxy.hr")
-                            launchIntent?.let { this.startActivity(it) }
+                            startHeadUnit()
                         },
                         onSettingsClick = {
                             val settingsIntent = Intent(this, SettingActivity::class.java)
@@ -249,11 +249,15 @@ class MainActivity : ComponentActivity() {
 //        }
     }
 
+    private fun startHeadUnit()
+    {
+        val launchIntent = this.packageManager.getLaunchIntentForPackage(HEADUNIT_PACKAGE_NAME)
+        launchIntent?.let { this.startActivity(it) }
+    }
+
     override fun onKeyUp(keyCode: Int, event: KeyEvent?): Boolean {
         if (keyCode == KeyEvent.KEYCODE_ENTER) {
-            val launchIntent =
-                this.packageManager.getLaunchIntentForPackage("gb.xxy.hr")
-            launchIntent?.let { this.startActivity(it) }
+            startHeadUnit()
             return true
         }
 
