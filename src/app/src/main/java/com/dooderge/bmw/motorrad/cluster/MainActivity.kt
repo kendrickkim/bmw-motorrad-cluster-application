@@ -144,7 +144,7 @@ class MainActivity : ComponentActivity() {
                 Toast.LENGTH_LONG
             ).show()
         } else {
-            registerReceiver(bleDataReceiver, intent_filter)
+            registerReceiver(bleDataReceiver, intent_filter, Context.RECEIVER_NOT_EXPORTED);
 
             bleService?.hideOverlay()
             // 풀스크린 설정
@@ -210,6 +210,9 @@ class MainActivity : ComponentActivity() {
         // 화면 꺼짐 방지
         window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
+        val firstBoot = intent.getBooleanExtra("firstBoot", false)
+
+
         setContent {
             BMWMotorradClusterTheme {
                 Surface(
@@ -233,7 +236,8 @@ class MainActivity : ComponentActivity() {
                             startActivity(launcherIntent)
                         },
                         context = this,
-                        carStatus = carStatus
+                        carStatus = carStatus,
+                        firstBoot = firstBoot
                     )
                 }
             }
@@ -252,7 +256,17 @@ class MainActivity : ComponentActivity() {
     private fun startHeadUnit()
     {
         val launchIntent = this.packageManager.getLaunchIntentForPackage(HEADUNIT_PACKAGE_NAME)
-        launchIntent?.let { this.startActivity(it) }
+        if (launchIntent != null) {
+            // 새로운 Task로 실행되도록 플래그 확인 및 추가
+            launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            try {
+                startActivity(launchIntent)
+            } catch (e: Exception) {
+                Log.e("AppLaunch", "앱 실행 실패: ${e.message}")
+            }
+        } else {
+            Log.e("AppLaunch", "패키지를 찾을 수 없음: $HEADUNIT_PACKAGE_NAME")
+        }
     }
 
     override fun onKeyUp(keyCode: Int, event: KeyEvent?): Boolean {

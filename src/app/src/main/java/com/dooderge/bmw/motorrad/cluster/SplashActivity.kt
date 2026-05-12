@@ -1,9 +1,10 @@
 package com.dooderge.bmw.motorrad.cluster
 
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
+import android.os.SystemClock
+import android.provider.Settings
 import android.view.View
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -22,19 +23,58 @@ import com.airbnb.lottie.compose.rememberLottieComposition
 import kotlinx.coroutines.delay
 
 class SplashActivity : ComponentActivity() {
+    companion object {
+        private const val PREFS_NAME = "splash_activity_prefs"
+        private const val KEY_LAST_SPLASH_BOOT_MARKER = "last_splash_boot_marker"
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        if (hasSplashAlreadyShownInCurrentBoot()) {
+            openMainActivity(animate = false, firstBoot = false)
+            return
+        }
+
+        markSplashShownInCurrentBoot()
+
         setContent {
             SplashScreen {
-                // 애니메이션이 끝나거나 일정 시간이 지나면 MainActivity로 이동
-                val intent = Intent(this, MainActivity::class.java)
-//                intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION)
-                startActivity(intent)
-                overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
-                finish()
+                openMainActivity(animate = true, firstBoot = true)
             }
         }
+    }
+
+    private fun hasSplashAlreadyShownInCurrentBoot(): Boolean {
+        val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        return prefs.getString(KEY_LAST_SPLASH_BOOT_MARKER, null) == currentBootMarker()
+    }
+
+    private fun markSplashShownInCurrentBoot() {
+        getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .edit()
+            .putString(KEY_LAST_SPLASH_BOOT_MARKER, currentBootMarker())
+            .apply()
+    }
+
+    private fun currentBootMarker(): String {
+        return try {
+            "boot_count:${Settings.Global.getInt(contentResolver, Settings.Global.BOOT_COUNT)}"
+        } catch (_: Settings.SettingNotFoundException) {
+            "boot_time:${(System.currentTimeMillis() - SystemClock.elapsedRealtime()) / 1000L}"
+        }
+    }
+
+    private fun openMainActivity(animate: Boolean, firstBoot: Boolean) {
+        val intent = Intent(this, MainActivity::class.java)
+        intent.putExtra("firstBoot", firstBoot)
+        startActivity(intent)
+        if (animate) {
+            overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
+        } else {
+            overridePendingTransition(0, 0)
+        }
+        finish()
     }
 
     override fun onResume()

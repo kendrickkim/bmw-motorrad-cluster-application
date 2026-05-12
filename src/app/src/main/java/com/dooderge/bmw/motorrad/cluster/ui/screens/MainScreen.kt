@@ -124,7 +124,8 @@ fun MainScreen(
     onSettingsClick: () -> Unit = {},
     onLauncherClick: () -> Unit = {},
     context: Context,
-    carStatus: CarStatus
+    carStatus: CarStatus,
+    firstBoot : Boolean
 ) {
 
     var strMutTime by remember { mutableStateOf("00:00:00") }
@@ -194,9 +195,12 @@ fun MainScreen(
 //            }
 //        }, 0, 100)
 
-		delay(500)
-		carStatus.rpm.value = 14000
-		delay(2000)
+
+        if(firstBoot) {
+            delay(500)
+            carStatus.rpm.value = 14000
+            delay(2000)
+        }
 		carStatus.rpm.value = 0
     }
 
