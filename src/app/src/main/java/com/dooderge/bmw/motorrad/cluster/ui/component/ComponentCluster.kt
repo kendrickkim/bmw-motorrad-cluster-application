@@ -68,16 +68,16 @@ fun Float.designedDp(): Dp {
 }
 
 
-@Composable
-fun Int.designedSp(): TextUnit {
-    return (this@designedSp * ratioImageAndScreen).pxToSp()
-}
-
-
-@Composable
-fun Float.designedSp(): TextUnit {
-    return (this@designedSp * ratioImageAndScreen).pxToSp()
-}
+//@Composable
+//fun Int.designedSp(): TextUnit {
+//    return (this@designedSp * ratioImageAndScreen).pxToSp()
+//}
+//
+//
+//@Composable
+//fun Float.designedSp(): TextUnit {
+//    return (this@designedSp * ratioImageAndScreen).pxToSp()
+//}
 
 
 @Composable

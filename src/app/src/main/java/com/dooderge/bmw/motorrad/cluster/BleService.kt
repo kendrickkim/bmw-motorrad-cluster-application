@@ -48,8 +48,10 @@ class BleService : Service() {
         public const val ACTION_CHECK_INPUT_METHOD =
             "com.dooderge.bmw.motorrad.cluster.CHECK_INPUT_METHOD"
 //        public var WHEEL_RPM_TO_SPEED = 0.121f // 1 RPM = 0.121 km/h
-		public var WHEEL_RPM_TO_SPEED = 0.98f
+//		public var WHEEL_RPM_TO_SPEED = 0.98f
+        public var WHEEL_RPM_TO_SPEED = 0.884f
     }
+
 
     private var windowManager: WindowManager? = null
     private var overlayView: View? = null

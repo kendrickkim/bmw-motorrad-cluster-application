@@ -486,6 +486,7 @@ fun MainScreen(
                     }
 
                     // 클러스터 텍스트 정보
+
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopStart)
                     {
                         Box(
@@ -725,7 +726,7 @@ fun HeaderSection(
             contentAlignment = Alignment.CenterStart
         )
         {
-            ClusterText(text = headerInfo.strNetworkInfo.value, 30f, FontWeight.ExtraBold)
+            ClusterText(text = headerInfo.strNetworkInfo.value, 40f, FontWeight.ExtraBold)
         }
 
 
@@ -742,7 +743,7 @@ fun HeaderSection(
             contentAlignment = Alignment.CenterEnd
         )
         {
-            ClusterText(headerInfo.strDateInfo.value, 50f, FontWeight.ExtraBold)
+            ClusterText(headerInfo.strDateInfo.value, 60f, FontWeight.ExtraBold)
         }
 
         Box(

@@ -2,6 +2,7 @@ package com.dooderge.bmw.motorrad.cluster
 
 import android.content.Context
 import android.content.SharedPreferences
+import com.dooderge.bmw.motorrad.cluster.ui.screens.MainScreen
 
 class SettingPreference private constructor() {
     companion object {
@@ -51,7 +52,7 @@ class SettingPreference private constructor() {
 
         fun getWheelRpmToSpeedFactor(context: Context): Float {
             val pref = context.getSharedPreferences(PREFERENCE_NAME, Context.MODE_PRIVATE)
-            return pref.getFloat("wheelRpmToSpeedFactor", 0.121f)
+            return pref.getFloat("wheelRpmToSpeedFactor", BleService.WHEEL_RPM_TO_SPEED)
         }
 
     }

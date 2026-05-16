@@ -119,14 +119,14 @@ fun ClusterSpeedRpm(
 					Column(
 						modifier = Modifier
 							.fillMaxSize()
-							.padding(top = 150.designedDp()),
+							.padding(top = 120.designedDp()),
 						verticalArrangement = Arrangement.Top,
 						horizontalAlignment = Alignment.CenterHorizontally
 					)
 					{
 
 						Box(
-							modifier = Modifier.size(412.designedDp(), 239.designedDp()),
+							modifier = Modifier.size(412.designedDp(), 279.designedDp()),
 							contentAlignment = Alignment.TopCenter
 						)
 						{
@@ -137,19 +137,19 @@ fun ClusterSpeedRpm(
 							{
 								ClusterText(
 									text = "${carStatus.speed.value}",
-									fontSize = 210f,
+									fontSize = 240f,
 									fontWeight = FontWeight.ExtraBold,
 									color = Color.White
 								)
 							}
 							Box(
-								modifier = Modifier.fillMaxSize().padding(top = 205.designedDp()),
+								modifier = Modifier.fillMaxSize().padding(top = 225.designedDp()),
 								contentAlignment = Alignment.TopCenter
 							)
 							{
 								ClusterText(
 									text = "Km/h",
-									fontSize = 40f,
+									fontSize = 50f,
 									fontWeight = FontWeight.Bold
 								)
 							}
@@ -158,7 +158,7 @@ fun ClusterSpeedRpm(
 						Spacer(Modifier.height(40.designedDp()))
 						ClusterText(
 							text = "RPM",
-							fontSize = 32f,
+							fontSize = 40f,
 							fontWeight = FontWeight.Bold
 						)
 						var colorRpmNumber = Color.White;
@@ -169,7 +169,7 @@ fun ClusterSpeedRpm(
 
 						ClusterText(
 							text = rpmInner.toInt().toString(),
-							fontSize = 70f,
+							fontSize = 90f,
 							fontWeight = FontWeight.ExtraBold,
 							color = colorRpmNumber
 						)

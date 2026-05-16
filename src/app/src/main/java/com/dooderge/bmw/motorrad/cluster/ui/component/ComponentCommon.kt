@@ -7,6 +7,7 @@ import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.LineHeightStyle
+import androidx.compose.ui.unit.sp
 
 @Composable
 fun ClusterText(
@@ -15,9 +16,10 @@ fun ClusterText(
 	fontWeight: FontWeight = FontWeight.Normal,
 	color: Color = Color(0xffaaaaaa)
 ) {
+    var nfontSize = fontSize / 3;
 	Text(
 		text = text,
-		fontSize = fontSize.designedSp(),
+		fontSize = nfontSize.sp,
 		fontWeight = fontWeight,
 		color = color,
 		style = TextStyle(

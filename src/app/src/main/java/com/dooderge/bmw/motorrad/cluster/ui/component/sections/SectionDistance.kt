@@ -46,6 +46,7 @@ fun SectionDistance(
 		alignment = alignment
 	)
 	{
+
 		Column(
 			modifier = Modifier
 				.fillMaxSize()
