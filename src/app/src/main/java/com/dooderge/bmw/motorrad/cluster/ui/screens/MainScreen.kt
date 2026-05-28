@@ -146,6 +146,15 @@ fun MainScreen(
 
     val headerInfo = remember { HeaderInfo() }
 
+    if(carStatus.bt_connection_status.value == false)
+    {
+        carStatus.gear.value = -1
+        carStatus.rpm.value = 0
+        carStatus.speed.value = 0
+        carStatus.voltage.value = 0
+        carStatus.coolant_temperature.value = 0
+    }
+
 
     // 리피터 변화시 작성 필요
 //	val headerInfo : HeaderInfo(repeater)

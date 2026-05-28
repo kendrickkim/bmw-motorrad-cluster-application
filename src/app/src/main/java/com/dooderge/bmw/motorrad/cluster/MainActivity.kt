@@ -9,6 +9,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.ServiceConnection
+import android.bluetooth.BluetoothProfile
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
@@ -34,8 +35,6 @@ import com.dooderge.bmw.motorrad.cluster.ui.theme.BMWMotorradClusterTheme
 
 class MainActivity : ComponentActivity() {
 
-    private var selectedBLEDeviceName: String = ""
-    private var selectedBLEDeviceAddress: String = ""
     private var carStatus = CarStatus()
 
     private val HEADUNIT_PACKAGE_NAME = "com.andrerinas.headunitrevived" // gb.xxy.hr
@@ -83,6 +82,41 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private var isBleReceiverRegistered = false
+
+    private fun registerBleReceiver() {
+        if (isBleReceiverRegistered) return
+
+        val intentFilter = IntentFilter().apply {
+            addAction(BleService.ACTION_CAR_STATUS_DATA_FILTER)
+            addAction(BleService.ACTION_CHECK_INPUT_METHOD)
+            addAction(BleService.ACTION_BT_CONNECTION_STATE_CHANGED)
+        }
+
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                registerReceiver(bleDataReceiver, intentFilter, Context.RECEIVER_NOT_EXPORTED)
+            } else {
+                @Suppress("DEPRECATION")
+                registerReceiver(bleDataReceiver, intentFilter)
+            }
+            isBleReceiverRegistered = true
+        } catch (e: Exception) {
+            Log.e("MainActivity", "Error registering receiver", e)
+        }
+    }
+
+    private fun unregisterBleReceiver() {
+        if (!isBleReceiverRegistered) return
+        try {
+            unregisterReceiver(bleDataReceiver)
+        } catch (e: Exception) {
+            Log.e("MainActivity", "Error unregistering receiver", e)
+        } finally {
+            isBleReceiverRegistered = false
+        }
+    }
+
     private val bleDataReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             if (intent?.action == BleService.ACTION_CAR_STATUS_DATA_FILTER) {
@@ -101,6 +135,9 @@ class MainActivity : ComponentActivity() {
 //                    Toast.LENGTH_SHORT
 //                ).show()
                 carStatus.setBtStatus(false)
+            } else if (intent?.action == BleService.ACTION_BT_CONNECTION_STATE_CHANGED) {
+                val connected = intent.getBooleanExtra(BleService.EXTRA_BT_CONNECTED, false)
+                carStatus.setBtStatus(connected)
             }
         }
 
@@ -118,6 +155,7 @@ class MainActivity : ComponentActivity() {
                 isBoundBleService = true
                 bleService?.makeOverLaywindow()
                 bleService?.hideOverlay()
+                syncBtConnectionStatusFromService()
             }
         }
 
@@ -132,20 +170,15 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
 
-        var intent_filter = IntentFilter()
-        intent_filter.addAction(BleService.ACTION_CAR_STATUS_DATA_FILTER)
-        intent_filter.addAction(BleService.ACTION_CHECK_INPUT_METHOD)
+        registerBleReceiver()
 
-        if(!checkOverlayPermission())
-        {
+        if (!checkOverlayPermission()) {
             Toast.makeText(
                 this,
                 "오버레이 권한이 필요합니다. 설정에서 권한을 허용해주세요.",
                 Toast.LENGTH_LONG
             ).show()
         } else {
-            registerReceiver(bleDataReceiver, intent_filter, Context.RECEIVER_NOT_EXPORTED);
-
             bleService?.hideOverlay()
             // 풀스크린 설정
             window.decorView.systemUiVisibility = (
@@ -161,16 +194,7 @@ class MainActivity : ComponentActivity() {
 
             checkAndRequestPermissions()
 
-            selectedBLEDeviceName = SettingPreference.getDeviceName(this) ?: ""
-            selectedBLEDeviceAddress = SettingPreference.getAddress(this) ?: ""
-
-//            carStatus.setBtStatus(false)
-
-            if (selectedBLEDeviceName.isEmpty() || selectedBLEDeviceAddress.isEmpty()) {
-                carStatus.setBtStatus(false);
-            } else {
-                carStatus.setBtStatus(true);
-            }
+            syncBtConnectionStatusFromService()
 //                Toast.makeText(
 //                    this,
 //                    "블루투스 장치가 선택되지 않았습니다. 설정에서 장치를 선택해주세요.",
@@ -186,11 +210,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onPause() {
         super.onPause()
-        try {
-            unregisterReceiver(bleDataReceiver)
-        } catch (e: Exception) {
-            Log.e("MainActivity", "Error unregistering receiver", e)
-        }
+        unregisterBleReceiver()
         bleService?.showOverlay()
     }
 
@@ -342,6 +362,18 @@ class MainActivity : ComponentActivity() {
         val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
         context.startActivity(intent)
+    }
+
+    private fun syncBtConnectionStatusFromService() {
+        val deviceName = SettingPreference.getDeviceName(this) ?: ""
+        val deviceAddress = SettingPreference.getAddress(this) ?: ""
+        if (deviceName.isEmpty() || deviceAddress.isEmpty()) {
+            carStatus.setBtStatus(false)
+            return
+        }
+        val gattConnected =
+            bleService?.getConnectionStatus() == BluetoothProfile.STATE_CONNECTED
+        carStatus.setBtStatus(gattConnected)
     }
 
     private fun checkOverlayPermission(): Boolean {

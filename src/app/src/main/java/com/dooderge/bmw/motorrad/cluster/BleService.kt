@@ -47,7 +47,11 @@ class BleService : Service() {
             "com.dooderge.bmw.motorrad.cluster.CAR_STATUS_CHANGED"
         public const val ACTION_CHECK_INPUT_METHOD =
             "com.dooderge.bmw.motorrad.cluster.CHECK_INPUT_METHOD"
-//        public var WHEEL_RPM_TO_SPEED = 0.121f // 1 RPM = 0.121 km/h
+        public const val ACTION_BT_CONNECTION_STATE_CHANGED =
+            "com.dooderge.bmw.motorrad.cluster.BT_CONNECTION_STATE_CHANGED"
+        const val EXTRA_BT_CONNECTED = "connected"
+
+        //        public var WHEEL_RPM_TO_SPEED = 0.121f // 1 RPM = 0.121 km/h
 //		public var WHEEL_RPM_TO_SPEED = 0.98f
         public var WHEEL_RPM_TO_SPEED = 0.884f
     }
@@ -356,14 +360,23 @@ class BleService : Service() {
 
         @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
         override fun onConnectionStateChange(gatt: BluetoothGatt, status: Int, newState: Int) {
-            if (newState == BluetoothProfile.STATE_CONNECTED) {
-                gatt.discoverServices()
-                connection_status = BluetoothProfile.STATE_CONNECTED
-            } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
-                connection_status = BluetoothProfile.STATE_DISCONNECTED
-                gatt.close()
-            } else if (newState == BluetoothProfile.STATE_CONNECTING) {
-                connection_status = BluetoothProfile.STATE_DISCONNECTED
+            when (newState) {
+                BluetoothProfile.STATE_CONNECTED -> {
+                    gatt.discoverServices()
+                    connection_status = BluetoothProfile.STATE_CONNECTED
+                    notifyBtConnectionStateChanged(true)
+                }
+
+                BluetoothProfile.STATE_DISCONNECTED -> {
+                    connection_status = BluetoothProfile.STATE_DISCONNECTED
+                    gatt.close()
+                    notifyBtConnectionStateChanged(false)
+                }
+
+                BluetoothProfile.STATE_CONNECTING -> {
+                    connection_status = BluetoothProfile.STATE_CONNECTING
+                    notifyBtConnectionStateChanged(false)
+                }
             }
         }
 
@@ -400,22 +413,40 @@ class BleService : Service() {
                         dataString += byte.toUnsigendInt().toUByte().toString(16) + " "
                     }
 
+                    var versioncode = dataString.substring(0, 2);
 
-                    var wheel_rpm: Int = data[5].toUnsigendInt() + data[6].toUnsigendInt() * 256
-//					wheel_rpm = 200
-                    var speed =
-                        (wheel_rpm * BleService.WHEEL_RPM_TO_SPEED).toInt() // 1 RPM = 0.121 km/h
+                    if (versioncode != "V1") {
+                        var wheel_rpm: Int = data[7].toUnsigendInt() + data[8].toUnsigendInt() * 256
+                        var speed =
+                            (wheel_rpm * BleService.WHEEL_RPM_TO_SPEED).toInt() // 1 RPM = 0.121 km/h
 
-                    var rpm = data[7].toUnsigendInt() + data[8].toUnsigendInt() * 256
-                    var gear = data[3].toUnsigendInt()
+                        var rpm = data[7].toUnsigendInt() + data[10].toUnsigendInt() * 256
+                        var gear = data[5].toUnsigendInt()
 
-                    currentCarStatus.setButtons(data[0])
-                    currentCarStatus.gear.value = gear
-                    currentCarStatus.speed.value = speed
-                    currentCarStatus.rpm.value = rpm
-                    currentCarStatus.voltage.value = data[4].toUnsigendInt()
-                    currentCarStatus.isIgnitionOn.value = data[9].toUnsigendInt() == 1
-                    currentCarStatus.wheel_value.value = data[2].toUnsigendInt()
+                        currentCarStatus.setButtons(data[2])
+                        currentCarStatus.gear.value = gear
+                        currentCarStatus.speed.value = speed
+                        currentCarStatus.rpm.value = rpm
+                        currentCarStatus.voltage.value = data[6].toUnsigendInt()
+                        currentCarStatus.isIgnitionOn.value = data[11].toUnsigendInt() == 1
+                        currentCarStatus.wheel_value.value = data[4].toUnsigendInt()
+
+                    } else {
+                        var wheel_rpm: Int = data[5].toUnsigendInt() + data[6].toUnsigendInt() * 256
+                        var speed =
+                            (wheel_rpm * BleService.WHEEL_RPM_TO_SPEED).toInt() // 1 RPM = 0.121 km/h
+
+                        var rpm = data[7].toUnsigendInt() + data[8].toUnsigendInt() * 256
+                        var gear = data[3].toUnsigendInt()
+
+                        currentCarStatus.setButtons(data[0])
+                        currentCarStatus.gear.value = gear
+                        currentCarStatus.speed.value = speed
+                        currentCarStatus.rpm.value = rpm
+                        currentCarStatus.voltage.value = data[4].toUnsigendInt()
+                        currentCarStatus.isIgnitionOn.value = data[9].toUnsigendInt() == 1
+                        currentCarStatus.wheel_value.value = data[2].toUnsigendInt()
+                    }
 
                     if (!oldCarStatus.isSame(currentCarStatus)) {
 //                        parseButtons()
@@ -429,6 +460,7 @@ class BleService : Service() {
                         oldCarStatus.copyFrom(currentCarStatus)
 
                         Intent(ACTION_CAR_STATUS_DATA_FILTER).also {
+                            it.setPackage(packageName)
                             it.putExtra("car_status", currentCarStatus.toJson())
                             sendBroadcast(it)
                         }
@@ -472,7 +504,9 @@ class BleService : Service() {
         tmr_connect.schedule(object : TimerTask() {
             @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
             override fun run() {
-                if (connection_status == BluetoothProfile.STATE_CONNECTED) return
+                if (connection_status == BluetoothProfile.STATE_CONNECTED ||
+                    connection_status == BluetoothProfile.STATE_CONNECTING
+                ) return
 
                 // 실제 BLE 연결 코드 필요 (주석 처리)
                 val deviceAddress = SettingPreference.getAddress(_this)
@@ -480,11 +514,13 @@ class BleService : Service() {
                 if (deviceAddress == null || deviceAddress.isEmpty()) return;
                 if (!getInputDevice(deviceName ?: "")) {
                     var intent = Intent(ACTION_CHECK_INPUT_METHOD)
+                    intent.setPackage(packageName)
                     sendBroadcast(intent)
+                    notifyBtConnectionStateChanged(false)
                     return
                 }
 
-
+                notifyBtConnectionStateChanged(true)
                 val bluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
                 var device: BluetoothDevice = bluetoothAdapter.getRemoteDevice(deviceAddress)
                 device.connectGatt(_this, false, bluetoothGattCallback)
@@ -526,6 +562,14 @@ class BleService : Service() {
 
     fun getConnectionStatus(): Int {
         return connection_status
+    }
+
+    private fun notifyBtConnectionStateChanged(connected: Boolean) {
+        Intent(ACTION_BT_CONNECTION_STATE_CHANGED).also {
+            it.setPackage(packageName)
+            it.putExtra(EXTRA_BT_CONNECTED, connected)
+            sendBroadcast(it)
+        }
     }
 
     override fun onDestroy() {

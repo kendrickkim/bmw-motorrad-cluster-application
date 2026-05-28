@@ -44,9 +44,16 @@ fun SectionStatus(
 
     val colorOff = Color(0xff666666)
     val colorBtStatusOn = Color(0xff327DFF)
+    val colorENGStatusOn = Color(0xFFFFC107)
+    val colorCAUStatusOn = Color(0xFFF44336)
 
     var blinkingBtStatusOn by remember { mutableStateOf(false) }
+    var blinkingENGStatusOn by remember { mutableStateOf(false) }
+    var blinkingCAUStatusOn by remember { mutableStateOf(false) }
+
     var colorBtStatus by remember { mutableStateOf(colorOff) }
+    var colorENGStatus by remember { mutableStateOf(colorOff) }
+    var colorCAUStatus by remember { mutableStateOf(colorOff) }
 
     LaunchedEffect(Unit)
     {
@@ -63,6 +70,23 @@ fun SectionStatus(
                         colorBtStatus = colorOff
                     }
                     blinkingBtStatusOn = onstatus
+                }
+
+                if (carStatus.isIgnitionOn.value)
+                {
+                    colorENGStatus = colorOff
+                    colorCAUStatus = colorOff
+                } else {
+
+                    var onstatus = !blinkingENGStatusOn
+                    if (onstatus) {
+                        colorENGStatus = colorENGStatusOn
+                        colorCAUStatus = colorCAUStatusOn
+                    } else {
+                        colorENGStatus = colorOff
+                        colorCAUStatus = colorOff
+                    }
+                    blinkingENGStatusOn = onstatus
                 }
             }
         }, 0, 200)
@@ -111,8 +135,8 @@ fun SectionStatus(
                 verticalAlignment = Alignment.CenterVertically
             )
             {
-                StatusBox("Engine", R.drawable.icon_status_eng, 0)
-                StatusBox("Gear", R.drawable.icon_status_cau, 0)
+                StatusBox("Engine", R.drawable.icon_status_eng, 0, colorENGStatus)
+                StatusBox("Caution", R.drawable.icon_status_cau, 0, colorCAUStatus)
                 StatusBox("BT", R.drawable.icon_status_bt, 0, colorBtStatus)
 
             }
