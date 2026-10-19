@@ -1,5 +1,6 @@
 package com.dooderge.bmw.motorrad.cluster.viewmodel
 
+/*
 import androidx.lifecycle.ViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -26,4 +27,5 @@ class MainViewModel : ViewModel() {
     fun updateError(error: String?) {
         _uiState.value = _uiState.value.copy(error = error)
     }
-} 
+}
+*/ 

@@ -39,15 +39,13 @@ fun SectionFuelGuage(
 			horizontalAlignment = Alignment.End
 		)
 		{
+			val rangeKm = carStatus.fuelRangeKm.value
+			val gauge = (rangeKm * 100 / 250).coerceIn(0, 100)
 			ClusterText(
-				text = "${50} %",
-				fontSize = 75f,
+				text = "$gauge % / $rangeKm Km",
+				fontSize = 90f,
 				fontWeight = FontWeight.ExtraBold,
-			)
-			ClusterText(
-				text = "${100} Km",
-				fontSize = 45f,
-				fontWeight = FontWeight.ExtraBold,
+				color = Color(0xffaaaaaa)
 			)
 		}
 	}

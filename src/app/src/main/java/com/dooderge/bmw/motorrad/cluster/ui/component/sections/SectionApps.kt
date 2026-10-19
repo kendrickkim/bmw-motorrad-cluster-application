@@ -42,7 +42,7 @@ fun SectionApps(
 ) {
 
     @Composable
-    fun AppBox(description: String, resouceId: Int, status: Int = 0, onPress: () -> Unit = {}) {
+    fun AppBox(description: String, resouceId: Int, onPress: () -> Unit = {}) {
         CompositionLocalProvider(
             LocalDensity provides Density(
                 density = LocalDensity.current.density,
@@ -93,13 +93,13 @@ fun SectionApps(
                 verticalAlignment = Alignment.CenterVertically
             )
             {
-                AppBox("Android Auto", R.drawable.icon_app_android_auto, 0, onPress = {
+                AppBox("Android Auto", R.drawable.icon_app_android_auto, onPress = {
                     onApplicationEvent("android_auto")
                 })
-                AppBox("Drawer", R.drawable.icon_app_apps, 0, onPress = {
+                AppBox("Drawer", R.drawable.icon_app_apps, onPress = {
                     onApplicationEvent("drawer")
                 })
-                AppBox("Setting", R.drawable.icon_app_setting, 0, onPress = {
+                AppBox("Setting", R.drawable.icon_app_setting, onPress = {
                     onApplicationEvent("setting")
                 })
 

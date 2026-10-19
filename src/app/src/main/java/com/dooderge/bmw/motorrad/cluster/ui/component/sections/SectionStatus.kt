@@ -1,6 +1,8 @@
 package com.dooderge.bmw.motorrad.cluster.ui.component.sections
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -39,7 +41,8 @@ import java.util.TimerTask
 fun SectionStatus(
     carStatus: CarStatus,
     alignment: Alignment = Alignment.TopStart,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onEngineClick: () -> Unit = {}
 ) {
 
     val colorOff = Color(0xff666666)
@@ -49,7 +52,7 @@ fun SectionStatus(
 
     var blinkingBtStatusOn by remember { mutableStateOf(false) }
     var blinkingENGStatusOn by remember { mutableStateOf(false) }
-    var blinkingCAUStatusOn by remember { mutableStateOf(false) }
+    // var blinkingCAUStatusOn by remember { mutableStateOf(false) }
 
     var colorBtStatus by remember { mutableStateOf(colorOff) }
     var colorENGStatus by remember { mutableStateOf(colorOff) }
@@ -96,12 +99,24 @@ fun SectionStatus(
     fun StatusBox(
         description: String,
         resouceId: Int,
-        status: Int = 0,
-        color: Color = Color(0xff666666)
+        color: Color = Color(0xff666666),
+        onClick: (() -> Unit)? = null
     ) {
+        val interactionSource = remember { MutableInteractionSource() }
         Box(
             modifier = Modifier
-                .size(200.designedDp(), 200.designedDp()),
+                .size(200.designedDp(), 200.designedDp())
+                .then(
+                    if (onClick != null) {
+                        Modifier.clickable(
+                            interactionSource = interactionSource,
+                            indication = null,
+                            onClick = onClick
+                        )
+                    } else {
+                        Modifier
+                    }
+                ),
             contentAlignment = Alignment.TopStart
         )
         {
@@ -135,9 +150,9 @@ fun SectionStatus(
                 verticalAlignment = Alignment.CenterVertically
             )
             {
-                StatusBox("Engine", R.drawable.icon_status_eng, 0, colorENGStatus)
-                StatusBox("Caution", R.drawable.icon_status_cau, 0, colorCAUStatus)
-                StatusBox("BT", R.drawable.icon_status_bt, 0, colorBtStatus)
+                StatusBox("Engine", R.drawable.icon_status_eng, colorENGStatus, onEngineClick)
+                StatusBox("Caution", R.drawable.icon_status_cau, colorCAUStatus)
+                StatusBox("BT", R.drawable.icon_status_bt, colorBtStatus)
 
             }
         }

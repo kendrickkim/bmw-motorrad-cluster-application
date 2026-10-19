@@ -24,7 +24,7 @@ import com.dooderge.bmw.motorrad.cluster.R
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun ComponentGearIndicator(carStatus: CarStatus, width : Int = 200, height : Int = 200, onLongClick: () -> Unit) {
+fun ComponentGearIndicator(carStatus: CarStatus, width: Int = 200, height: Int = 200, onLongClick: () -> Unit) {
     fun getResourceId(gearNo: Int): Int {
         return when (gearNo) {
             0 -> R.drawable.icon_gear_0
@@ -61,6 +61,7 @@ fun ComponentGearIndicator(carStatus: CarStatus, width : Int = 200, height : Int
 }
 
 
+/*
 @Composable
 fun ComponentGearIndicator2(
 	carStatus: CarStatus,
@@ -95,3 +96,4 @@ fun ComponentGearIndicator2(
 		}
 	}
 }
+*/

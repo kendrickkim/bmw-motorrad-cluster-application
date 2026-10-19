@@ -22,7 +22,6 @@ import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
-import android.util.Log
 import android.view.Gravity
 import android.view.InputDevice
 import android.view.MotionEvent
@@ -31,8 +30,8 @@ import android.view.WindowManager
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.widget.Toast
 import androidx.annotation.RequiresPermission
-import androidx.compose.runtime.MutableState
 import androidx.core.app.NotificationCompat
 import java.util.Timer
 import java.util.TimerTask
@@ -50,6 +49,13 @@ class BleService : Service() {
         public const val ACTION_BT_CONNECTION_STATE_CHANGED =
             "com.dooderge.bmw.motorrad.cluster.BT_CONNECTION_STATE_CHANGED"
         const val EXTRA_BT_CONNECTED = "connected"
+        const val ACTION_START_LIN_LOG =
+            "com.dooderge.bmw.motorrad.cluster.START_LIN_LOG"
+        const val ACTION_STOP_LIN_LOG =
+            "com.dooderge.bmw.motorrad.cluster.STOP_LIN_LOG"
+        const val ACTION_LIN_LOG_STATE =
+            "com.dooderge.bmw.motorrad.cluster.LIN_LOG_STATE"
+        const val EXTRA_LIN_LOGGING = "logging"
 
         //        public var WHEEL_RPM_TO_SPEED = 0.121f // 1 RPM = 0.121 km/h
 //		public var WHEEL_RPM_TO_SPEED = 0.98f
@@ -64,9 +70,9 @@ class BleService : Service() {
         return (dp * resources.displayMetrics.density + 0.5f).toInt()
     }
 
-    fun dpToSp(dp: Int): Int {
-        return (dp * resources.displayMetrics.scaledDensity + 0.5f).toInt()
-    }
+    // fun dpToSp(dp: Int): Int {
+    //     return (dp * resources.displayMetrics.scaledDensity + 0.5f).toInt()
+    // }
 
     @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
     override fun onCreate() {
@@ -87,6 +93,9 @@ class BleService : Service() {
 
         // read wheel RPM to speed factor from settings
         WHEEL_RPM_TO_SPEED = SettingPreference.getWheelRpmToSpeedFactor(this)
+        if (SettingPreference.isLinLogging(this)) {
+            linDataLogger.start()
+        }
 //		WHEEL_RPM_TO_SPEED = 300.0f
 
         // 오버레이 생성 (View 기반)
@@ -158,35 +167,14 @@ class BleService : Service() {
             setPadding(0, 0, dpToPx(15), 0)
         }
 
-        val rpmText = TextView(this).apply {
-            text = "0"
-            setTextColor(Color.WHITE)
-            typeface = mFont
-            includeFontPadding = false
-//            gravity = Gravity.TOP or Gravity.RIGHT
-//            gravity = Gravity.CENTER
-            gravity = Gravity.RIGHT or Gravity.CENTER_VERTICAL
-            textAlignment = View.TEXT_ALIGNMENT_GRAVITY
-            includeFontPadding = false
-            layoutParams = LinearLayout.LayoutParams(
-                dpToPx(130), dpToPx(70)
-            )
-
-            TextViewCompat.setAutoSizeTextTypeWithDefaults(
-                this,
-                TextView.AUTO_SIZE_TEXT_TYPE_UNIFORM
-            )
-
-//            setPadding(0, dpToPx(-10), 30, 0)
-            setPadding(0, 0, dpToPx(15), 0)
-
-        }
+        // Unused overlay RPM label. Speed and gear are the views actually added.
+        // val rpmText = TextView(this).apply { ... }
         layout.addView(speedText)
         layout.addView(gearImage)
 
         var last_touch_millis: Long = 0;
 
-        gearImage?.setOnTouchListener(object : View.OnTouchListener {
+        gearImage.setOnTouchListener(object : View.OnTouchListener {
             override fun onTouch(v: View?, event: MotionEvent): Boolean {
                 if (event.action == MotionEvent.ACTION_DOWN) {
                     val current_touch_millis = System.currentTimeMillis()
@@ -253,105 +241,31 @@ class BleService : Service() {
     }
 
 
-    var old_car_status: ByteArray = ByteArray(15)
-
-    fun copyArray(source: ByteArray): ByteArray {
-        val destination = ByteArray(source.size)
-        for (i in source.indices) {
-            destination[i] = source[i]
-        }
-        return destination
-    }
+    // var old_car_status: ByteArray = ByteArray(15)
+    // fun copyArray(source: ByteArray): ByteArray { ... }
 
     var currentCarStatus = CarStatus()
     var oldCarStatus = CarStatus()
 
-    fun sendKeyEvent(keyCode: WW_VR_KEY, action: WW_VR_KEY) {
-        Log.d("BleService", "sendKeyEvent: ${keyCode.key_name} - ${action.key_name}")
-        Intent(VirtualKeyService.VIRTUAL_KEY_DATA_FILTER).also {
-            it.putExtra("keycode", keyCode.value)
-            it.putExtra("action", action.value)
-            sendBroadcast(it)
-        }
+    private fun Byte.u8(): Int = toInt() and 0xFF
+
+    private fun applyPackedCarStatus(data: ByteArray) {
+        val wheelRpm = data[7].u8() + data[8].u8() * 256
+        currentCarStatus.setButtons(data[2])
+        currentCarStatus.gear.value = data[5].u8()
+        currentCarStatus.speed.value = (wheelRpm * WHEEL_RPM_TO_SPEED).toInt()
+        currentCarStatus.rpm.value = data[7].u8() + data[10].u8() * 256
+        currentCarStatus.voltage.value = data[6].u8()
+        currentCarStatus.isIgnitionOn.value = data[11].u8() == 1
+        currentCarStatus.ignitionKnown.value = true
+        currentCarStatus.wheel_value.value = data[4].u8()
+        // Unused alternate layout that looked for an ASCII "V1" prefix:
+        // gear = data[3], speed from data[5..6], rpm from data[7..8], voltage = data[4]
     }
 
-    fun parseButtons() {
-        fun button_status_changed(
-            old_button: MutableState<Boolean>,
-            new_button: MutableState<Boolean>,
-            keycode: WW_VR_KEY
-        ) {
-            if (!old_button.value && new_button.value) {
-                Log.d("BleService", "$keycode button down")
-                sendKeyEvent(keycode, WW_VR_KEY.VR_KEY_ACTION_DOWN)
-            }
-            if (old_button.value && !new_button.value) {
-                Log.d("BleService", "$keycode button up")
-                sendKeyEvent(keycode, WW_VR_KEY.VR_KEY_ACTION_UP)
-            }
-        }
-
-        button_status_changed(
-            oldCarStatus.button_repeat_left,
-            currentCarStatus.button_repeat_left,
-            WW_VR_KEY.VR_KEY_REPEAT_LEFT
-        )
-        button_status_changed(
-            oldCarStatus.button_repeat_right,
-            currentCarStatus.button_repeat_right,
-            WW_VR_KEY.VR_KEY_REPEAT_RIGHT
-        )
-        button_status_changed(
-            oldCarStatus.button_repeat_center,
-            currentCarStatus.button_repeat_center,
-            WW_VR_KEY.VR_KEY_REPEAT_CENTER
-        )
-        button_status_changed(
-            oldCarStatus.button_wheel_left,
-            currentCarStatus.button_wheel_left,
-            WW_VR_KEY.VR_KEY_WHEEL_LEFT
-        )
-        button_status_changed(
-            oldCarStatus.button_wheel_right,
-            currentCarStatus.button_wheel_right,
-            WW_VR_KEY.VR_KEY_WHEEL_RIGHT
-        )
-    }
-
-    fun parseWheel() {
-        var is_up = false;
-
-        var old_wheel_value = oldCarStatus.wheel_value.value
-        var new_wheel_value = currentCarStatus.wheel_value.value
-
-        if (old_wheel_value == -1 || new_wheel_value == -1) return
-
-
-        if (old_wheel_value != new_wheel_value) {
-//            Log.d(
-//                "BleService",
-//                "old wheel value: $old_wheel_value, new wheel value: $new_wheel_value"
-//            )
-            if (old_wheel_value < new_wheel_value) {
-                is_up = true;
-                if (new_wheel_value - old_wheel_value > 200) {
-                    is_up = false;
-                }
-            } else if (old_wheel_value > new_wheel_value) {
-                is_up = false;
-                if (old_wheel_value - new_wheel_value > 200) {
-                    is_up = true;
-                }
-            }
-
-            if (is_up) {
-                sendKeyEvent(WW_VR_KEY.VR_KEY_WHEEL_UP, WW_VR_KEY.VR_KEY_ACTION_PRESS)
-            } else {
-                sendKeyEvent(WW_VR_KEY.VR_KEY_WHEEL_DOWN, WW_VR_KEY.VR_KEY_ACTION_PRESS)
-            }
-        }
-
-    }
+    // fun sendKeyEvent(...) { broadcast to VirtualKeyService }
+    // fun parseButtons() { ... }
+    // fun parseWheel() { ... }
 
     var connection_status = BluetoothProfile.STATE_DISCONNECTED
 
@@ -394,61 +308,22 @@ class BleService : Service() {
             }
         }
 
-        fun Byte.toUnsigendInt(): Int {
-            var r: Int = this.toInt();
-            if (r < 0) r += 256
-            return r;
-        }
-
         override fun onCharacteristicChanged(
             gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic
         ) {
             if (characteristic.uuid.toString() == "00002a01-0000-1000-8000-00805f9b34fb") {
-                var data: ByteArray = characteristic.value
+                val data = characteristic.value ?: return
+                linDataLogger.append(data)
 
-                if (data.isNotEmpty()) {
+                if (data.size == LinFrame.LENGTH) {
+                    LinFrame.apply(data, currentCarStatus)
+                } else if (data.size >= 12) {
+                    applyPackedCarStatus(data)
+                } else {
+                    return
+                }
 
-                    var dataString: String = "";
-                    for (byte in data) {
-                        dataString += byte.toUnsigendInt().toUByte().toString(16) + " "
-                    }
-
-                    var versioncode = dataString.substring(0, 2);
-
-                    if (versioncode != "V1") {
-                        var wheel_rpm: Int = data[7].toUnsigendInt() + data[8].toUnsigendInt() * 256
-                        var speed =
-                            (wheel_rpm * BleService.WHEEL_RPM_TO_SPEED).toInt() // 1 RPM = 0.121 km/h
-
-                        var rpm = data[7].toUnsigendInt() + data[10].toUnsigendInt() * 256
-                        var gear = data[5].toUnsigendInt()
-
-                        currentCarStatus.setButtons(data[2])
-                        currentCarStatus.gear.value = gear
-                        currentCarStatus.speed.value = speed
-                        currentCarStatus.rpm.value = rpm
-                        currentCarStatus.voltage.value = data[6].toUnsigendInt()
-                        currentCarStatus.isIgnitionOn.value = data[11].toUnsigendInt() == 1
-                        currentCarStatus.wheel_value.value = data[4].toUnsigendInt()
-
-                    } else {
-                        var wheel_rpm: Int = data[5].toUnsigendInt() + data[6].toUnsigendInt() * 256
-                        var speed =
-                            (wheel_rpm * BleService.WHEEL_RPM_TO_SPEED).toInt() // 1 RPM = 0.121 km/h
-
-                        var rpm = data[7].toUnsigendInt() + data[8].toUnsigendInt() * 256
-                        var gear = data[3].toUnsigendInt()
-
-                        currentCarStatus.setButtons(data[0])
-                        currentCarStatus.gear.value = gear
-                        currentCarStatus.speed.value = speed
-                        currentCarStatus.rpm.value = rpm
-                        currentCarStatus.voltage.value = data[4].toUnsigendInt()
-                        currentCarStatus.isIgnitionOn.value = data[9].toUnsigendInt() == 1
-                        currentCarStatus.wheel_value.value = data[2].toUnsigendInt()
-                    }
-
-                    if (!oldCarStatus.isSame(currentCarStatus)) {
+                if (!oldCarStatus.isSame(currentCarStatus)) {
 //                        parseButtons()
 //                        parseWheel()
 
@@ -472,8 +347,6 @@ class BleService : Service() {
                 }
             }
         }
-
-    }
 
     fun getInputDevice(deviceName: String): Boolean {
         if (deviceName.isEmpty()) return false;
@@ -572,7 +445,43 @@ class BleService : Service() {
         }
     }
 
+    private val linDataLogger = LinDataLogger(this)
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        when (intent?.action) {
+            ACTION_START_LIN_LOG -> {
+                if (!linDataLogger.start()) {
+                    toast("로그 파일을 만들지 못했습니다")
+                }
+                broadcastLinLogState()
+            }
+            ACTION_STOP_LIN_LOG -> {
+                val names = linDataLogger.stop()
+                broadcastLinLogState()
+                if (names.isNotEmpty()) {
+                    toast(names.joinToString("\n"))
+                }
+            }
+        }
+        return START_STICKY
+    }
+
+    private fun broadcastLinLogState() {
+        Intent(ACTION_LIN_LOG_STATE).also {
+            it.setPackage(packageName)
+            it.putExtra(EXTRA_LIN_LOGGING, linDataLogger.active)
+            sendBroadcast(it)
+        }
+    }
+
+    private fun toast(message: String) {
+        Handler(Looper.getMainLooper()).post {
+            Toast.makeText(applicationContext, message, Toast.LENGTH_LONG).show()
+        }
+    }
+
     override fun onDestroy() {
+        linDataLogger.release()
         super.onDestroy()
         if (overlayView != null) windowManager?.removeView(overlayView)
     }

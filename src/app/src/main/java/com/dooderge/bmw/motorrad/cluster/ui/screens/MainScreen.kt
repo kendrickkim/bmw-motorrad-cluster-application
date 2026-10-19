@@ -2,7 +2,6 @@ package com.dooderge.bmw.motorrad.cluster.ui.screens
 
 import android.content.Context
 import android.content.Intent
-import android.net.wifi.WifiManager
 import android.provider.Settings
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -49,7 +48,6 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.dooderge.bmw.motorrad.cluster.CarStatus
 import com.dooderge.bmw.motorrad.cluster.R
 import com.dooderge.bmw.motorrad.cluster.SettingPreference
@@ -65,19 +63,15 @@ import com.dooderge.bmw.motorrad.cluster.ui.component.sections.SectionFuelGuage
 import com.dooderge.bmw.motorrad.cluster.ui.component.sections.SectionStatus
 import com.dooderge.bmw.motorrad.cluster.ui.component.sections.SectionTime
 import com.dooderge.bmw.motorrad.cluster.ui.component.sections.SectionVoltage
-import com.dooderge.bmw.motorrad.cluster.ui.component.sections.SectionWeather
+import com.dooderge.bmw.motorrad.cluster.ui.component.sections.SectionDirection
 import com.dooderge.bmw.motorrad.cluster.ui.component.setDesignedSizeByWidth
 import com.dooderge.bmw.motorrad.cluster.ui.component.setDesginedSizeByHeight
-import com.dooderge.bmw.motorrad.cluster.viewmodel.MainViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.Timer
 import java.util.TimerTask
-import kotlin.random.Random
-
-
 data class HeaderInfo(
     var strNetworkInfo: MutableState<String> = mutableStateOf(""),
     var strTimeInfo: MutableState<String> = mutableStateOf(""),
@@ -118,11 +112,12 @@ fun fanShape(targetDegree: Float) = object : Shape {
 
 @Composable
 fun MainScreen(
-    onPermissionsGranted: () -> Unit,
-    viewModel: MainViewModel = viewModel(),
+    // onPermissionsGranted: () -> Unit,
+    // viewModel: MainViewModel = viewModel(),
     onAndroidAutoClick: () -> Unit = {},
     onSettingsClick: () -> Unit = {},
     onLauncherClick: () -> Unit = {},
+    onEngineClick: () -> Unit = {},
     context: Context,
     carStatus: CarStatus,
     firstBoot : Boolean
@@ -130,7 +125,6 @@ fun MainScreen(
 
     var strMutTime by remember { mutableStateOf("00:00:00") }
     var strMutDate by remember { mutableStateOf("2026-01-01") }
-    var strWifiName by remember { mutableStateOf("Unknown") }
     var strBtDeviceName by remember { mutableStateOf("NONE") }
 
     var sizeScreen by remember { mutableStateOf(IntSize(1, 1)) }
@@ -138,7 +132,7 @@ fun MainScreen(
     var sizeDisplayBackgroundImage by remember { mutableStateOf(IntSize(1, 1)) }
     var sizeRpmGuageImage by remember { mutableStateOf(IntSize(1, 1)) }
     var sizeDisplayRpmGuageImage by remember { mutableStateOf(IntSize(1, 1)) }
-    var ratioImageAndScreen by remember { mutableFloatStateOf(1f) }
+    // var ratioImageAndScreen by remember { mutableFloatStateOf(1f) }
 
     val scaleImage = remember {
         mutableFloatStateOf(1f)
@@ -146,7 +140,7 @@ fun MainScreen(
 
     val headerInfo = remember { HeaderInfo() }
 
-    if(carStatus.bt_connection_status.value == false)
+    if (carStatus.bt_connection_status.value == false && !carStatus.linCapturePlaying.value)
     {
         carStatus.gear.value = -1
         carStatus.rpm.value = 0
@@ -178,20 +172,14 @@ fun MainScreen(
                         java.util.Locale.getDefault()
                     ).format(java.util.Date())
 
-                    val wifiManager = context.getSystemService(Context.WIFI_SERVICE) as WifiManager
-                    val wifiInfo = wifiManager.connectionInfo
-                    strWifiName = wifiInfo.ssid
-                    strWifiName = strWifiName.replace("\"", "")
-
                     val btDeviceName: String? = SettingPreference.getDeviceName(context)
-                    if (btDeviceName == null || btDeviceName.isEmpty()) btDeviceName == "[W]NONE"
                     strBtDeviceName = btDeviceName.toString()
-                    if (strBtDeviceName == null || strBtDeviceName.isEmpty() || strBtDeviceName == "null") strBtDeviceName =
+                    if (strBtDeviceName.isEmpty() || strBtDeviceName == "null") strBtDeviceName =
                         "[BT]NONE"
 
                     headerInfo.strTimeInfo.value = strMutTime
                     headerInfo.strDateInfo.value = strMutDate
-                    headerInfo.strNetworkInfo.value = strWifiName + "\n" + strBtDeviceName
+                    headerInfo.strNetworkInfo.value = strBtDeviceName
 
 
                 }
@@ -435,7 +423,7 @@ fun MainScreen(
                                 Alignment.TopEnd
                             ),
                             SectionInfo(
-                                "Fuel Guage",
+                                "Direction",
                                 PaddingValues(end = right2, top = top1),
                                 Alignment.TopEnd
                             ),
@@ -446,7 +434,7 @@ fun MainScreen(
                                 Alignment.TopStart
                             ),
                             SectionInfo(
-                                "Weather",
+                                "Fuel Guage",
                                 PaddingValues(end = right1, top = top2),
                                 Alignment.TopEnd
                             ),
@@ -514,7 +502,8 @@ fun MainScreen(
                                 modifier = Modifier
                                     .padding(start = 30.designedDp(), top = 524.designedDp())
                                     .size(554.designedDp(), 161.designedDp()),
-                                carStatus = carStatus
+                                carStatus = carStatus,
+                                onEngineClick = onEngineClick
                             )
 
                             SectionVoltage(
@@ -543,7 +532,7 @@ fun MainScreen(
                                 alignment = Alignment.TopEnd
                             )
 
-                            SectionFuelGuage(
+                            SectionDirection(
                                 modifier = Modifier
                                     .padding(end = 433.designedDp(), top = 232.designedDp())
                                     .size(226.designedDp(), 161.designedDp()),
@@ -551,7 +540,7 @@ fun MainScreen(
                                 alignment = Alignment.TopEnd
                             )
 
-                            SectionWeather(
+                            SectionFuelGuage(
                                 modifier = Modifier
                                     .padding(end = 28.designedDp(), top = 524.designedDp())
                                     .size(554.designedDp(), 150.designedDp()),
@@ -735,7 +724,15 @@ fun HeaderSection(
             contentAlignment = Alignment.CenterStart
         )
         {
-            ClusterText(text = headerInfo.strNetworkInfo.value, 40f, FontWeight.ExtraBold)
+            ClusterText(
+                text = if (carStatus.linCapturePlaying.value) {
+                    carStatus.linCaptureLine.value.toString()
+                } else {
+                    headerInfo.strNetworkInfo.value
+                },
+                60f,
+                FontWeight.ExtraBold
+            )
         }
 
 

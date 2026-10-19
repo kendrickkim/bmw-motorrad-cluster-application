@@ -29,6 +29,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import com.dooderge.bmw.motorrad.cluster.launcher.LauncherActivity
 import com.dooderge.bmw.motorrad.cluster.ui.screens.MainScreen
 import com.dooderge.bmw.motorrad.cluster.ui.theme.BMWMotorradClusterTheme
@@ -125,6 +133,7 @@ class MainActivity : ComponentActivity() {
                 newCarStatus.fromJson(json)
                 carStatus.copyFrom(newCarStatus)
                 carStatus.setBtStatus(true)
+                SettingPreference.updateIgnitionTrip(this@MainActivity, carStatus)
 
 //                Log.d("MainActivity", "Received car status: $carStatus")
             } else if (intent?.action == BleService.ACTION_CHECK_INPUT_METHOD) {
@@ -230,6 +239,8 @@ class MainActivity : ComponentActivity() {
         // 화면 꺼짐 방지
         window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
+        SettingPreference.restoreIgnitionTrip(this, carStatus)
+
         val firstBoot = intent.getBooleanExtra("firstBoot", false)
 
 
@@ -240,9 +251,6 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     MainScreen(
-                        onPermissionsGranted = {
-                            startServices()
-                        },
                         onAndroidAutoClick = {
                             startHeadUnit()
                         },
@@ -255,6 +263,7 @@ class MainActivity : ComponentActivity() {
                             val launcherIntent = Intent(this, LauncherActivity::class.java)
                             startActivity(launcherIntent)
                         },
+                        onEngineClick = { playLinCapture() },
                         context = this,
                         carStatus = carStatus,
                         firstBoot = firstBoot
@@ -362,6 +371,59 @@ class MainActivity : ComponentActivity() {
         val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
         context.startActivity(intent)
+    }
+
+    private var linCaptureJob: Job? = null
+    private var linCaptureGeneration = 0
+
+    private fun playLinCapture() {
+        if (!SettingPreference.isLinTestEnabled(this)) return
+        val generation = ++linCaptureGeneration
+        linCaptureJob?.cancel()
+        linCaptureJob = lifecycleScope.launch(Dispatchers.IO) {
+            val lines = resources.openRawResource(R.raw.lin_capture)
+                .bufferedReader()
+                .readLines()
+            withContext(Dispatchers.Main) {
+                carStatus.linCapturePlaying.value = true
+            }
+            try {
+                for ((index, line) in lines.withIndex()) {
+                    if (!isActive || generation != linCaptureGeneration) break
+                    val frame = parseLinCaptureLine(line) ?: continue
+                    val lineNumber = index + 1
+                    withContext(Dispatchers.Main) {
+                        carStatus.linCaptureLine.value = lineNumber
+                        LinFrame.apply(frame, carStatus)
+                        SettingPreference.updateIgnitionTrip(this@MainActivity, carStatus)
+                    }
+                    delay(10)
+                }
+            } finally {
+                withContext(NonCancellable + Dispatchers.Main) {
+                    if (generation == linCaptureGeneration) {
+                        carStatus.linCapturePlaying.value = false
+                    }
+                }
+            }
+        }
+    }
+
+    private fun parseLinCaptureLine(line: String): ByteArray? {
+        val parts = line.trim().split(Regex("\\s+")).filter { it.isNotEmpty() }
+        if (parts.size < LinFrame.LENGTH) return null
+        val frame = ByteArray(LinFrame.LENGTH)
+        for (index in 0 until LinFrame.LENGTH) {
+            val token = parts[index].removePrefix("0x").removePrefix("0X")
+            val value = token.toIntOrNull(16) ?: return null
+            frame[index] = value.toByte()
+        }
+        return frame
+    }
+
+    override fun onDestroy() {
+        linCaptureJob?.cancel()
+        super.onDestroy()
     }
 
     private fun syncBtConnectionStatusFromService() {

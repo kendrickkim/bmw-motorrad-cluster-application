@@ -157,8 +157,7 @@ fun RpmGuage(
     context: Context,
     carStatus: CarStatus
 ) {
-    val max_rpm = 14000.0f;
-
+    // val max_rpm = 14000.0f
 
     data class RPMValue(
         var value: MutableState<Int> = mutableStateOf(0),

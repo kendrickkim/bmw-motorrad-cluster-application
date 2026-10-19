@@ -62,40 +62,11 @@ fun SectionDistance(
 			)
 			{
 				ClusterText(
-					text = "${0} Km",
-					fontSize = 75f,
+					text = "${carStatus.odometerKm.value} Km",
+					fontSize = 90f,
 					fontWeight = FontWeight.ExtraBold,
 					color = textColor
 				)
-			}
-
-			Box(
-			)
-			{
-				Box(
-					modifier = Modifier, contentAlignment = Alignment.TopStart
-				)
-				{
-					ClusterText(
-						text = "${0} Km",
-						fontSize = 45f,
-						fontWeight = FontWeight.ExtraBold,
-						color = textColor
-					)
-				}
-				Box(
-					modifier = Modifier
-						.padding(start = 280.designedDp()),
-					contentAlignment = Alignment.TopStart
-				)
-				{
-					ClusterText(
-						text = "${0} Km",
-						fontSize = 45f,
-						fontWeight = FontWeight.ExtraBold,
-						color = textColor
-					)
-				}
 			}
 		}
 	}

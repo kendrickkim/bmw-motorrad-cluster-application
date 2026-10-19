@@ -18,8 +18,38 @@ data class CarStatus(
     var voltage: MutableState<Int> = mutableStateOf(0),
     var isIgnitionOn: MutableState<Boolean> = mutableStateOf(false),
     var coolant_temperature: MutableState<Int> = mutableStateOf(0),
-    var bt_connection_status: MutableState<Boolean> = mutableStateOf(false)
+    var fuelRangeKm: MutableState<Int> = mutableStateOf(0),
+    var odometerKm: MutableState<Int> = mutableStateOf(0),
+    var horn: MutableState<Boolean> = mutableStateOf(false),
+    var hazard: MutableState<Boolean> = mutableStateOf(false),
+    var abs: MutableState<Boolean> = mutableStateOf(false),
+    var esa: MutableState<Boolean> = mutableStateOf(false),
+    var cruise: MutableState<Boolean> = mutableStateOf(false),
+    var highBeam: MutableState<Boolean> = mutableStateOf(false),
+    var trip: MutableState<Boolean> = mutableStateOf(false),
+    var info: MutableState<Boolean> = mutableStateOf(false),
+    var cruiseSet: MutableState<Boolean> = mutableStateOf(false),
+    var cruiseReset: MutableState<Boolean> = mutableStateOf(false),
+    var wheelDirection: MutableState<Int> = mutableStateOf(0),
+    var ambientLight: MutableState<Int> = mutableStateOf(-1),
+    var throttlePercent: MutableState<Int> = mutableStateOf(-1),
+    var ascState: MutableState<Int> = mutableStateOf(LinFrame.ASC_UNKNOWN),
+    var oilLow: MutableState<Boolean> = mutableStateOf(false),
+    var averageSpeedKmh: MutableState<Int> = mutableStateOf(-1),
+    var speedE9Kmh: MutableState<Int> = mutableStateOf(-1),
+    var fuelFault: MutableState<Boolean> = mutableStateOf(false),
+    var generalFault: MutableState<Int> = mutableStateOf(0),
+    var bt_connection_status: MutableState<Boolean> = mutableStateOf(false),
+    var linCapturePlaying: MutableState<Boolean> = mutableStateOf(false),
+    var linCaptureLine: MutableState<Int> = mutableStateOf(0),
+    var ignitionKnown: MutableState<Boolean> = mutableStateOf(false),
+    var tripActive: MutableState<Boolean> = mutableStateOf(false),
+    var tripStartedAtMillis: MutableState<Long> = mutableStateOf(0L),
+    var tripBaseOdometerKm: MutableState<Int> = mutableStateOf(0),
+    var tripBaseLatched: MutableState<Boolean> = mutableStateOf(false)
 ) {
+    // fun reset() { unused
+    /*
     fun reset() {
         button_repeat_left.value = false
         button_repeat_right.value = false
@@ -33,8 +63,30 @@ data class CarStatus(
         voltage.value = 0
         isIgnitionOn.value = false
         coolant_temperature.value = 0
+        fuelRangeKm.value = 0
+        odometerKm.value = 0
+        horn.value = false
+        hazard.value = false
+        abs.value = false
+        esa.value = false
+        cruise.value = false
+        highBeam.value = false
+        trip.value = false
+        info.value = false
+        cruiseSet.value = false
+        cruiseReset.value = false
+        wheelDirection.value = 0
+        ambientLight.value = -1
+        throttlePercent.value = -1
+        ascState.value = LinFrame.ASC_UNKNOWN
+        oilLow.value = false
+        averageSpeedKmh.value = -1
+        speedE9Kmh.value = -1
+        fuelFault.value = false
+        generalFault.value = 0
         bt_connection_status.value = false
     }
+    */
 
     fun setButtons(value: Byte) {
         button_repeat_left.value = (value and 0x01) != 0.toByte()
@@ -55,7 +107,29 @@ data class CarStatus(
                 rpm.value == other.rpm.value &&
                 voltage.value == other.voltage.value &&
                 isIgnitionOn.value == other.isIgnitionOn.value &&
-                coolant_temperature.value == other.coolant_temperature.value
+                coolant_temperature.value == other.coolant_temperature.value &&
+                fuelRangeKm.value == other.fuelRangeKm.value &&
+                odometerKm.value == other.odometerKm.value &&
+                horn.value == other.horn.value &&
+                hazard.value == other.hazard.value &&
+                abs.value == other.abs.value &&
+                esa.value == other.esa.value &&
+                cruise.value == other.cruise.value &&
+                highBeam.value == other.highBeam.value &&
+                trip.value == other.trip.value &&
+                info.value == other.info.value &&
+                cruiseSet.value == other.cruiseSet.value &&
+                cruiseReset.value == other.cruiseReset.value &&
+                wheelDirection.value == other.wheelDirection.value &&
+                ambientLight.value == other.ambientLight.value &&
+                throttlePercent.value == other.throttlePercent.value &&
+                ascState.value == other.ascState.value &&
+                oilLow.value == other.oilLow.value &&
+                averageSpeedKmh.value == other.averageSpeedKmh.value &&
+                speedE9Kmh.value == other.speedE9Kmh.value &&
+                fuelFault.value == other.fuelFault.value &&
+                generalFault.value == other.generalFault.value &&
+                ignitionKnown.value == other.ignitionKnown.value
     }
 
     fun copyFrom(other: CarStatus) {
@@ -94,6 +168,39 @@ data class CarStatus(
 
         if (coolant_temperature.value != other.coolant_temperature.value)
             coolant_temperature.value = other.coolant_temperature.value
+
+        if (fuelRangeKm.value != other.fuelRangeKm.value)
+            fuelRangeKm.value = other.fuelRangeKm.value
+
+        if (odometerKm.value != other.odometerKm.value)
+            odometerKm.value = other.odometerKm.value
+
+        if (horn.value != other.horn.value) horn.value = other.horn.value
+        if (hazard.value != other.hazard.value) hazard.value = other.hazard.value
+        if (abs.value != other.abs.value) abs.value = other.abs.value
+        if (esa.value != other.esa.value) esa.value = other.esa.value
+        if (cruise.value != other.cruise.value) cruise.value = other.cruise.value
+        if (highBeam.value != other.highBeam.value) highBeam.value = other.highBeam.value
+        if (trip.value != other.trip.value) trip.value = other.trip.value
+        if (info.value != other.info.value) info.value = other.info.value
+        if (cruiseSet.value != other.cruiseSet.value) cruiseSet.value = other.cruiseSet.value
+        if (cruiseReset.value != other.cruiseReset.value) cruiseReset.value = other.cruiseReset.value
+        if (wheelDirection.value != other.wheelDirection.value)
+            wheelDirection.value = other.wheelDirection.value
+        if (ambientLight.value != other.ambientLight.value)
+            ambientLight.value = other.ambientLight.value
+        if (throttlePercent.value != other.throttlePercent.value)
+            throttlePercent.value = other.throttlePercent.value
+        if (ascState.value != other.ascState.value) ascState.value = other.ascState.value
+        if (oilLow.value != other.oilLow.value) oilLow.value = other.oilLow.value
+        if (averageSpeedKmh.value != other.averageSpeedKmh.value)
+            averageSpeedKmh.value = other.averageSpeedKmh.value
+        if (speedE9Kmh.value != other.speedE9Kmh.value) speedE9Kmh.value = other.speedE9Kmh.value
+        if (fuelFault.value != other.fuelFault.value) fuelFault.value = other.fuelFault.value
+        if (generalFault.value != other.generalFault.value)
+            generalFault.value = other.generalFault.value
+        if (ignitionKnown.value != other.ignitionKnown.value)
+            ignitionKnown.value = other.ignitionKnown.value
     }
 
     fun toJson(): String {
@@ -110,13 +217,35 @@ data class CarStatus(
                 "rpm": ${rpm.value},
                 "voltage": ${voltage.value},
                 "isIgnitionOn": ${isIgnitionOn.value},
-                "coolant_temperature": ${coolant_temperature.value}
+                "coolant_temperature": ${coolant_temperature.value},
+                "fuelRangeKm": ${fuelRangeKm.value},
+                "odometerKm": ${odometerKm.value},
+                "horn": ${horn.value},
+                "hazard": ${hazard.value},
+                "abs": ${abs.value},
+                "esa": ${esa.value},
+                "cruise": ${cruise.value},
+                "highBeam": ${highBeam.value},
+                "trip": ${trip.value},
+                "info": ${info.value},
+                "cruiseSet": ${cruiseSet.value},
+                "cruiseReset": ${cruiseReset.value},
+                "wheelDirection": ${wheelDirection.value},
+                "ambientLight": ${ambientLight.value},
+                "throttlePercent": ${throttlePercent.value},
+                "ascState": ${ascState.value},
+                "oilLow": ${oilLow.value},
+                "averageSpeedKmh": ${averageSpeedKmh.value},
+                "speedE9Kmh": ${speedE9Kmh.value},
+                "fuelFault": ${fuelFault.value},
+                "generalFault": ${generalFault.value},
+                "ignitionKnown": ${ignitionKnown.value}
             }
         """.trimIndent()
     }
 
     fun fromJson(json: String) {
-        val regex = """"(\w+)":\s*(true|false|null|\d+)""".toRegex()
+        val regex = """"(\w+)":\s*(true|false|null|-?\d+)""".toRegex()
         regex.findAll(json).forEach { matchResult ->
             when (matchResult.groupValues[1]) {
                 "button_repeat_left" -> button_repeat_left.value =
@@ -144,6 +273,40 @@ data class CarStatus(
                 "isIgnitionOn" -> isIgnitionOn.value = matchResult.groupValues[2].toBoolean()
                 "coolant_temperature" -> coolant_temperature.value =
                     matchResult.groupValues[2].toIntOrNull() ?: 0
+
+                "fuelRangeKm" -> fuelRangeKm.value =
+                    matchResult.groupValues[2].toIntOrNull() ?: 0
+
+                "odometerKm" -> odometerKm.value =
+                    matchResult.groupValues[2].toIntOrNull() ?: 0
+
+                "horn" -> horn.value = matchResult.groupValues[2].toBoolean()
+                "hazard" -> hazard.value = matchResult.groupValues[2].toBoolean()
+                "abs" -> abs.value = matchResult.groupValues[2].toBoolean()
+                "esa" -> esa.value = matchResult.groupValues[2].toBoolean()
+                "cruise" -> cruise.value = matchResult.groupValues[2].toBoolean()
+                "highBeam" -> highBeam.value = matchResult.groupValues[2].toBoolean()
+                "trip" -> trip.value = matchResult.groupValues[2].toBoolean()
+                "info" -> info.value = matchResult.groupValues[2].toBoolean()
+                "cruiseSet" -> cruiseSet.value = matchResult.groupValues[2].toBoolean()
+                "cruiseReset" -> cruiseReset.value = matchResult.groupValues[2].toBoolean()
+                "wheelDirection" -> wheelDirection.value =
+                    matchResult.groupValues[2].toIntOrNull() ?: 0
+                "ambientLight" -> ambientLight.value =
+                    matchResult.groupValues[2].toIntOrNull() ?: -1
+                "throttlePercent" -> throttlePercent.value =
+                    matchResult.groupValues[2].toIntOrNull() ?: -1
+                "ascState" -> ascState.value =
+                    matchResult.groupValues[2].toIntOrNull() ?: LinFrame.ASC_UNKNOWN
+                "oilLow" -> oilLow.value = matchResult.groupValues[2].toBoolean()
+                "averageSpeedKmh" -> averageSpeedKmh.value =
+                    matchResult.groupValues[2].toIntOrNull() ?: -1
+                "speedE9Kmh" -> speedE9Kmh.value =
+                    matchResult.groupValues[2].toIntOrNull() ?: -1
+                "fuelFault" -> fuelFault.value = matchResult.groupValues[2].toBoolean()
+                "generalFault" -> generalFault.value =
+                    matchResult.groupValues[2].toIntOrNull() ?: 0
+                "ignitionKnown" -> ignitionKnown.value = matchResult.groupValues[2].toBoolean()
             }
         }
     }

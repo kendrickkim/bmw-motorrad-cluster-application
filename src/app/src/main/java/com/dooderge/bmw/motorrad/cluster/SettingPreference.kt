@@ -55,5 +55,71 @@ class SettingPreference private constructor() {
             return pref.getFloat("wheelRpmToSpeedFactor", BleService.WHEEL_RPM_TO_SPEED)
         }
 
+        fun setLinTestEnabled(context: Context, enabled: Boolean) {
+            val pref = context.getSharedPreferences(PREFERENCE_NAME, Context.MODE_PRIVATE)
+            pref.edit().putBoolean("linTestEnabled", enabled).apply()
+        }
+
+        fun isLinTestEnabled(context: Context): Boolean {
+            val pref = context.getSharedPreferences(PREFERENCE_NAME, Context.MODE_PRIVATE)
+            return pref.getBoolean("linTestEnabled", false)
+        }
+
+        fun setLinLogging(context: Context, enabled: Boolean) {
+            val pref = context.getSharedPreferences(PREFERENCE_NAME, Context.MODE_PRIVATE)
+            pref.edit().putBoolean("linLogging", enabled).apply()
+        }
+
+        fun isLinLogging(context: Context): Boolean {
+            val pref = context.getSharedPreferences(PREFERENCE_NAME, Context.MODE_PRIVATE)
+            return pref.getBoolean("linLogging", false)
+        }
+
+        fun restoreIgnitionTrip(context: Context, status: CarStatus) {
+            val pref = context.getSharedPreferences(PREFERENCE_NAME, Context.MODE_PRIVATE)
+            status.tripActive.value = pref.getBoolean("tripActive", false)
+            status.tripStartedAtMillis.value = pref.getLong("tripStartedAt", 0L)
+            status.tripBaseOdometerKm.value = pref.getInt("tripBaseKm", 0)
+            status.tripBaseLatched.value = pref.getBoolean("tripBaseLatched", false)
+        }
+
+        fun updateIgnitionTrip(context: Context, status: CarStatus) {
+            if (!status.ignitionKnown.value) return
+            if (status.isIgnitionOn.value) {
+                if (!status.tripActive.value) {
+                    status.tripActive.value = true
+                    status.tripStartedAtMillis.value = System.currentTimeMillis()
+                    if (status.odometerKm.value > 0) {
+                        status.tripBaseOdometerKm.value = status.odometerKm.value
+                        status.tripBaseLatched.value = true
+                    } else {
+                        status.tripBaseOdometerKm.value = 0
+                        status.tripBaseLatched.value = false
+                    }
+                    saveIgnitionTrip(context, status)
+                } else if (!status.tripBaseLatched.value && status.odometerKm.value > 0) {
+                    status.tripBaseOdometerKm.value = status.odometerKm.value
+                    status.tripBaseLatched.value = true
+                    saveIgnitionTrip(context, status)
+                }
+            } else if (status.tripActive.value) {
+                status.tripActive.value = false
+                status.tripStartedAtMillis.value = 0L
+                status.tripBaseOdometerKm.value = 0
+                status.tripBaseLatched.value = false
+                saveIgnitionTrip(context, status)
+            }
+        }
+
+        private fun saveIgnitionTrip(context: Context, status: CarStatus) {
+            context.getSharedPreferences(PREFERENCE_NAME, Context.MODE_PRIVATE)
+                .edit()
+                .putBoolean("tripActive", status.tripActive.value)
+                .putLong("tripStartedAt", status.tripStartedAtMillis.value)
+                .putInt("tripBaseKm", status.tripBaseOdometerKm.value)
+                .putBoolean("tripBaseLatched", status.tripBaseLatched.value)
+                .apply()
+        }
+
     }
 }

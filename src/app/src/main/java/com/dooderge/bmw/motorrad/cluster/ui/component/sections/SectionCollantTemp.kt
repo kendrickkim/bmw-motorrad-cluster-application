@@ -39,10 +39,9 @@ fun SectionCoolantTemp
 			horizontalAlignment = Alignment.Start
 		)
 		{
-//			val voltage = carStatus.voltage.value.toFloat()
-//			val strVoltage = String.format("%.1f", voltage / 10.0)
+			val celsius = carStatus.coolant_temperature.value / 10
 			ClusterText(
-				text = "${90} ℃",
+				text = "${celsius} ℃",
 				fontSize = 90f,
 				fontWeight = FontWeight.ExtraBold,
 			)

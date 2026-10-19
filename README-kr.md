@@ -13,7 +13,7 @@ ESP32에서 BLE로 받은 차량 정보를 표시하는 **스마트폰 클러스
 ## 기능
 
 - Compose 기반 **가로 클러스터 UI**
-- 포그라운드 **`BleService`**: `BMW-WWC-*` 연결, car-status 파싱, UI 브로드캐스트
+- 포그라운드 **`BleService`**: `BMW-WWC-*` 연결, LIN 원본 프레임 해석, UI 브로드캐스트
 - 위치 저장되는 **오버레이** (속도/기어 등)
 - **휠 RPM → 속도** 환산 계수 설정 (SharedPreferences)
 - Wonder Wheel 경로용 **`VirtualKeyService`** (접근성)
@@ -75,28 +75,36 @@ gradlew.bat :app:assembleDebug
 5. (선택) 기본 홈 앱으로 지정.
 6. 표시 속도가 다르면 **휠 RPM → 속도** 계수를 조정합니다 (코드 기본값 약 `0.884`).
 
-## BLE car-status 파싱
+## BLE LIN 프레임 파싱
 
 - Service: `0000180a-0000-1000-8000-00805f9b34fb`
 - Characteristic: `00002a01-0000-1000-8000-00805f9b34fb`
 
-ESP32 `buildData()` 기준 주요 오프셋:
+실차에서 ESP32는 notify마다 원본 프레임 7바이트를 보냅니다. `LinFrame.kt`가 `lin_analysis` 기준으로 해석합니다. 12바이트 이상이면 벤치용 기존 car-status 패킷으로 처리합니다.
 
 | Offset | 필드 |
 |:------:|------|
-| 0 | 버튼 |
-| 2 | Wonder Wheel |
-| 3 | 기어 |
-| 4 | 전압 raw |
-| 5–6 | 휠 RPM (LE) |
-| 7–8 | 엔진 RPM (LE) |
-| 9 | 이그니션 |
+| 0 | Message ID |
+| 1 | Data-0 |
+| 2 | Data-1 |
+| 3 | Data-2 |
+| 4 | Data-3 |
+| 5 | Data-4 |
+| 6 | Data-5 |
+
+| ID | `CarStatus`에 넣는 값 |
+|:--:|------------------------|
+| `0x14` | 핸들 비트(혼, 비상등, ABS, ESA, 크루즈, 하이빔, Trip, Info), Wonder Wheel in/out와 회전 방향 |
+| `0x20` | 이그니션, 속도, 주행가능거리, 조도 |
+| `0x2B` | Data-1이 `0x25`일 때 적산거리 |
+| `0xE2` | RPM, 기어, 스로틀, 냉각수 온도, ASC, 오일 |
+| `0xE9` | 평균 속도, 보조 속도, 전압 raw (`Data-3`, 화면은 `/ 10` V), 연료 고장, 일반 고장 |
+
+ID `0x20` 속도는 `lin_analysis`의 고정 계수를 씁니다.
 
 ```text
-speed_kmh ≈ wheel_rpm × WHEEL_RPM_TO_SPEED
+speed_kmh ≈ rear_wheel_rpm × 0.14
 ```
-
-전압 UI는 보통 `raw / 10`으로 표시합니다. 패킷을 바꾸면 펌웨어와 앱 오프셋을 함께 맞추세요.
 
 ## 저장소 구성
 
