@@ -112,8 +112,6 @@ fun fanShape(targetDegree: Float) = object : Shape {
 
 @Composable
 fun MainScreen(
-    // onPermissionsGranted: () -> Unit,
-    // viewModel: MainViewModel = viewModel(),
     onAndroidAutoClick: () -> Unit = {},
     onSettingsClick: () -> Unit = {},
     onLauncherClick: () -> Unit = {},
@@ -150,12 +148,6 @@ fun MainScreen(
     }
 
 
-    // 리피터 변화시 작성 필요
-//	val headerInfo : HeaderInfo(repeater)
-//	{
-//
-//	}
-
     LaunchedEffect(Unit) {
         val timerRefreshDateTime = Timer()
 
@@ -185,13 +177,6 @@ fun MainScreen(
                 }
             }, 0, 100
         )
-//        var tmrChangeRpm = Timer()
-//        tmrChangeRpm.schedule(object : TimerTask() {
-//            override fun run() {
-//                carStatus.rpm.value = Random.nextInt(0, 14000)
-//            }
-//        }, 0, 100)
-
 
         if(firstBoot) {
             delay(500)
@@ -232,14 +217,12 @@ fun MainScreen(
             val ratioBackgroundImage =
                 sizeBackgroundImage.width.toFloat() / sizeBackgroundImage.height.toFloat()
 
-            var ratioImageSize = 1f
-            if (ratioScreen < ratioBackgroundImage) {
-                ratioImageSize = sizeScreen.width.toFloat() / sizeBackgroundImage.width.toFloat()
+            val ratioImageSize = if (ratioScreen < ratioBackgroundImage) {
                 setDesignedSizeByWidth(sizeScreen.width.toFloat())
-
+                sizeScreen.width.toFloat() / sizeBackgroundImage.width.toFloat()
             } else {
-                ratioImageSize = sizeScreen.height.toFloat() / sizeBackgroundImage.height.toFloat()
                 setDesginedSizeByHeight(sizeScreen.height.toFloat())
+                sizeScreen.height.toFloat() / sizeBackgroundImage.height.toFloat()
             }
 
             sizeDisplayBackgroundImage =
@@ -364,8 +347,7 @@ fun MainScreen(
                         ClusterSpeedRpm(
                             width = sizeDisplayRpmGuageImage.width,
                             height = sizeDisplayRpmGuageImage.height,
-                            carStatus = carStatus,
-                            scale = scaleImage.floatValue
+                            carStatus = carStatus
                         )
                     }
 
@@ -456,24 +438,10 @@ fun MainScreen(
                                 PaddingValues(end = right1, top = top3),
                                 Alignment.TopEnd
                             ),
-//
-//                            SectionInfo(
-//                                "Time",
-//                                SesionPadding(0, 202, 0, 5),
-//                                Alignment.TopEnd
-//                            ),
 
                         )
 
                         status.forEach { s ->
-
-//                            val newPadding = PaddingValues(
-//                                s.padding.calculateStartPadding(LayoutDirection.Ltr) * scaleImage.value,
-//                                s.padding.calculateTopPadding() * scaleImage.value,
-//                                s.padding.calculateEndPadding(LayoutDirection.Ltr) * scaleImage.value,
-//                                s.padding.calculateBottomPadding() * scaleImage.value,
-//                            )
-
                             SectionText(
                                 text = s.text,
                                 padding = s.padding,
@@ -571,145 +539,14 @@ fun MainScreen(
                     }
 
 
-//              Text(
-//                text = "       ${wifi_name} / ${strMutBtDeviceName.value}",
-//                fontSize = 15.sp,
-//                fontWeight = FontWeight.Bold,
-//              )
-//              Box(
-//                modifier = Modifier.fillMaxSize(),
-//                contentAlignment = Alignment.Center
-//              )
-//              {
-//                Text(
-//                  text = "${strMutTime.value} ",
-//                  fontSize = 28.sp,
-//                  fontWeight = FontWeight.ExtraBold,
-//                  fontFamily = FontFamily(Font(R.font.robot_mono))
-//                )
-//              }
-//            }
-//
-//
-//            Row(
-//              modifier = Modifier
-//                .fillMaxSize()
-//                .background(Color.Black)
-//                .padding(8.dp)
-//            ) {
-//              // 좌측 버튼 영역
-//              Column(
-//                modifier = Modifier
-//                  .fillMaxHeight()
-//                  .width(150.dp),
-//                verticalArrangement = Arrangement.SpaceBetween,
-//                horizontalAlignment = Alignment.CenterHorizontally
-//              ) {
-//
-//
-//                Spacer(modifier = Modifier.height(8.dp))
-//                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-//                  Box(
-//                    modifier = Modifier
-//                      .size(128.dp, 128.dp)
-//                      .clip(RoundedCornerShape(15.dp))
-//                      .background(Color.DarkGray)
-//                      .clickable {
-//                        onAndroidAutoClick()
-//                      }
-//
-//                  )
-//                  {
-//                    Image(
-//                      contentDescription = "Android auto",
-//                      painter = painterResource(id = R.drawable.icon_android_auto),
-//                      modifier = Modifier
-//                        .fillMaxSize()
-//                        .padding(20.dp),
-//                      contentScale = ContentScale.Fit
-//                    )
-//                  }
-////                        Spacer(modifier = Modifier.height(16.dp))
-////                        Box(
-////                            modifier = Modifier
-////                                .size(128.dp, 128.dp)
-////                                .clip(RoundedCornerShape(15.dp))
-////                                .background(Color.DarkGray)
-////                                .clickable {
-////                                    onLauncherClick()
-////                                }
-////
-////                        )
-////                        {
-////                            Image(
-////                                contentDescription = "Apps",
-////                                painter = painterResource(id = R.drawable.ic_main),
-////                                modifier = Modifier
-////                                    .fillMaxSize()
-////                                    .padding(20.dp),
-////                                contentScale = ContentScale.Fit
-////                            )
-////                        }
-//                }
-//                Spacer(modifier = Modifier.height(16.dp))
-//                ComponentGearIndicator(carStatus.gear.value, onLongClick = {
-//                  CoroutineScope(Dispatchers.Main).launch {
-//                    val wifiSettingsIntent =
-//                      Intent(android.provider.Settings.ACTION_WIFI_SETTINGS)
-//                    wifiSettingsIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-//                    context.startActivity(wifiSettingsIntent)
-//
-//                  }
-//                })
-//                Spacer(modifier = Modifier.height(8.dp))
-//              }
-//              Spacer(modifier = Modifier.width(16.dp))
-//              Box(
-//                modifier = Modifier
-//                  .fillMaxSize()
-//                  .padding(start = 8.dp, end = 8.dp, bottom = 8.dp, top = 0.dp),
-//                contentAlignment = Alignment.BottomCenter
-//              ) {
-//                ComponentCluster(context = context, carStatus = carStatus)
-//              }
-//            }
                 }
             }
         }
-
-//		Box(
-//			modifier = Modifier.fillMaxSize(),
-//			contentAlignment = Alignment.BottomEnd
-//		)
-//		{
-//			Box(
-//				modifier = Modifier
-//					.size(60.dp, 60.dp)
-//					.padding(10.dp)
-//					.pointerInput(Unit) {
-//						detectTapGestures(
-//							onPress = {
-//								onSettingsClick()
-//							}
-//						)
-//					})
-//			{
-//				Image(
-//					modifier = Modifier.fillMaxSize(),
-//					painter = painterResource(
-//						id = R.drawable.icon_setting
-//					),
-//					contentDescription = "icon_setting",
-//
-//					)
-//			}
-//		}
     }
 }
 
 @Composable
 fun HeaderSection(
-    modifier: Modifier = Modifier,
     carStatus: CarStatus,
     headerInfo: HeaderInfo
 ) {

@@ -48,46 +48,6 @@ data class CarStatus(
     var tripBaseOdometerKm: MutableState<Int> = mutableStateOf(0),
     var tripBaseLatched: MutableState<Boolean> = mutableStateOf(false)
 ) {
-    // fun reset() { unused
-    /*
-    fun reset() {
-        button_repeat_left.value = false
-        button_repeat_right.value = false
-        button_repeat_center.value = false
-        button_wheel_left.value = false
-        button_wheel_right.value = false
-        wheel_value.value = -1
-        gear.value = 0
-        speed.value = 0
-        rpm.value = 0
-        voltage.value = 0
-        isIgnitionOn.value = false
-        coolant_temperature.value = 0
-        fuelRangeKm.value = 0
-        odometerKm.value = 0
-        horn.value = false
-        hazard.value = false
-        abs.value = false
-        esa.value = false
-        cruise.value = false
-        highBeam.value = false
-        trip.value = false
-        info.value = false
-        cruiseSet.value = false
-        cruiseReset.value = false
-        wheelDirection.value = 0
-        ambientLight.value = -1
-        throttlePercent.value = -1
-        ascState.value = LinFrame.ASC_UNKNOWN
-        oilLow.value = false
-        averageSpeedKmh.value = -1
-        speedE9Kmh.value = -1
-        fuelFault.value = false
-        generalFault.value = 0
-        bt_connection_status.value = false
-    }
-    */
-
     fun setButtons(value: Byte) {
         button_repeat_left.value = (value and 0x01) != 0.toByte()
         button_repeat_right.value = (value and 0x02) != 0.toByte()

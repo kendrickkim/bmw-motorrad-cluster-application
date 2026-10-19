@@ -378,9 +378,6 @@ class SettingActivity : ComponentActivity() {
         }
     }
 
-    // @Composable fun SameWeightButton(label: String, onClick: () -> Unit) { unused }
-    // @Composable fun RoundButton(label: String, onClick: () -> Unit) { unused }
-
     override fun onResume() {
         super.onResume()
         window.decorView.systemUiVisibility = (

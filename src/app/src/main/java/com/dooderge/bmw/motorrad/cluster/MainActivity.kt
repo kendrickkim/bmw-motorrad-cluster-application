@@ -1,7 +1,6 @@
 package com.dooderge.bmw.motorrad.cluster
 
 import android.Manifest
-import android.accessibilityservice.AccessibilityService
 import android.annotation.SuppressLint
 import android.content.BroadcastReceiver
 import android.content.ComponentName
@@ -16,7 +15,6 @@ import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
 import android.provider.Settings
-import android.text.TextUtils
 import android.util.Log
 import android.view.KeyEvent
 import android.view.View
@@ -134,15 +132,7 @@ class MainActivity : ComponentActivity() {
                 carStatus.copyFrom(newCarStatus)
                 carStatus.setBtStatus(true)
                 SettingPreference.updateIgnitionTrip(this@MainActivity, carStatus)
-
-//                Log.d("MainActivity", "Received car status: $carStatus")
             } else if (intent?.action == BleService.ACTION_CHECK_INPUT_METHOD) {
-//                Toast.makeText(
-//                    applicationContext,
-//                    "블루투스 입력장치 설정이 올바르지 않습니다.\n" +
-//                            "장치 초기화 > 블루투스 키보드 장치 연결 > 장치 재설정하세요",
-//                    Toast.LENGTH_SHORT
-//                ).show()
                 carStatus.setBtStatus(false)
             } else if (intent?.action == BleService.ACTION_BT_CONNECTION_STATE_CHANGED) {
                 val connected = intent.getBooleanExtra(BleService.EXTRA_BT_CONNECTED, false)
@@ -204,17 +194,7 @@ class MainActivity : ComponentActivity() {
             checkAndRequestPermissions()
 
             syncBtConnectionStatusFromService()
-//                Toast.makeText(
-//                    this,
-//                    "블루투스 장치가 선택되지 않았습니다. 설정에서 장치를 선택해주세요.",
-//                    Toast.LENGTH_LONG
-//                ).show()
-//            }
         }
-//        else {
-//            // 선택된 BLE 장치 정보로 서비스 시작
-//            bleService?.connectToDevice()
-//        }
     }
 
     override fun onPause() {
@@ -273,13 +253,6 @@ class MainActivity : ComponentActivity() {
         }
 
         startServices()
-
-
-        // 접근성 서비스 활성화 체크 및 설정 화면 이동
-//        if (!isAccessibilityServiceEnabled(this, VirtualKeyService::class.java)) {
-//            Toast.makeText(this, "앱의 접근성 서비스를 활성화 해주세요.", Toast.LENGTH_LONG).show()
-//            launchAccessibilitySettings(this)
-//        }
     }
 
     private fun startHeadUnit()
@@ -344,33 +317,6 @@ class MainActivity : ComponentActivity() {
         } else {
             startService(bleServiceIntent)
         }
-    }
-
-    private fun isAccessibilityServiceEnabled(
-        context: Context,
-        service: Class<out AccessibilityService>
-    ): Boolean {
-        val expectedComponentName = ComponentName(context, service)
-        val enabledServicesSetting = Settings.Secure.getString(
-            context.contentResolver,
-            Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
-        ) ?: return false
-
-        val colonSplitter = TextUtils.SimpleStringSplitter(':')
-        colonSplitter.setString(enabledServicesSetting)
-        while (colonSplitter.hasNext()) {
-            val componentName = colonSplitter.next()
-            if (ComponentName.unflattenFromString(componentName) == expectedComponentName) {
-                return true
-            }
-        }
-        return false
-    }
-
-    private fun launchAccessibilitySettings(context: Context) {
-        val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
-        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-        context.startActivity(intent)
     }
 
     private var linCaptureJob: Job? = null

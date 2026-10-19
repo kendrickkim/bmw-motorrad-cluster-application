@@ -1,19 +1,15 @@
 package com.dooderge.bmw.motorrad.cluster.ui.component
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -26,12 +22,7 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.PlatformTextStyle
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.LineHeightStyle
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.dooderge.bmw.motorrad.cluster.CarStatus
 import com.dooderge.bmw.motorrad.cluster.R
 import com.dooderge.bmw.motorrad.cluster.ui.screens.fanShape
@@ -44,9 +35,7 @@ import kotlin.math.abs
 fun ClusterSpeedRpm(
 	width: Int,
 	height: Int,
-	scale: Float,
-	carStatus: CarStatus,
-//	modifier: Modifier = Modifier
+	carStatus: CarStatus
 ) {
 
 	val rpmDegreeStart = -134f
@@ -63,7 +52,6 @@ fun ClusterSpeedRpm(
 		tmrRpmChangeTest.schedule(object : TimerTask() {  // 시간 / 날짜 리프레시 타이머
 			override fun run() {
 				val rpm = carStatus.rpm.value.toFloat()
-//                val rpm = 11000f
 				if (rpmInner != rpm) {
 					val unitDiff = abs(rpmInner - rpm) / 13
 					var _rpm = rpmInner

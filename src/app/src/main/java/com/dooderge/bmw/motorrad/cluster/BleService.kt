@@ -57,8 +57,6 @@ class BleService : Service() {
             "com.dooderge.bmw.motorrad.cluster.LIN_LOG_STATE"
         const val EXTRA_LIN_LOGGING = "logging"
 
-        //        public var WHEEL_RPM_TO_SPEED = 0.121f // 1 RPM = 0.121 km/h
-//		public var WHEEL_RPM_TO_SPEED = 0.98f
         public var WHEEL_RPM_TO_SPEED = 0.884f
     }
 
@@ -69,10 +67,6 @@ class BleService : Service() {
     fun dpToPx(dp: Int): Int {
         return (dp * resources.displayMetrics.density + 0.5f).toInt()
     }
-
-    // fun dpToSp(dp: Int): Int {
-    //     return (dp * resources.displayMetrics.scaledDensity + 0.5f).toInt()
-    // }
 
     @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
     override fun onCreate() {
@@ -96,7 +90,6 @@ class BleService : Service() {
         if (SettingPreference.isLinLogging(this)) {
             linDataLogger.start()
         }
-//		WHEEL_RPM_TO_SPEED = 300.0f
 
         // 오버레이 생성 (View 기반)
 
@@ -146,11 +139,7 @@ class BleService : Service() {
         val speedText = TextView(this).apply {
             text = "0"
             setTextColor(Color.WHITE)
-//            textSize = dpToSp(20).toFloat()
             typeface = mFont
-            includeFontPadding = false
-//            gravity = Gravity.TOP or Gravity.RIGHT
-//            gravity = Gravity.CENTER
             gravity = Gravity.RIGHT or Gravity.CENTER_VERTICAL
             textAlignment = View.TEXT_ALIGNMENT_GRAVITY
             includeFontPadding = false
@@ -163,12 +152,9 @@ class BleService : Service() {
                 TextView.AUTO_SIZE_TEXT_TYPE_UNIFORM
             )
 
-//            setPadding(0, dpToPx(-10), 30, 0)
             setPadding(0, 0, dpToPx(15), 0)
         }
 
-        // Unused overlay RPM label. Speed and gear are the views actually added.
-        // val rpmText = TextView(this).apply { ... }
         layout.addView(speedText)
         layout.addView(gearImage)
 
@@ -179,7 +165,6 @@ class BleService : Service() {
                 if (event.action == MotionEvent.ACTION_DOWN) {
                     val current_touch_millis = System.currentTimeMillis()
                     if (current_touch_millis - last_touch_millis < 300) {
-//                        Log.d("BleService", "onTouch: ${event.action}")
                         return true
                     }
                     last_touch_millis = current_touch_millis
@@ -240,10 +225,6 @@ class BleService : Service() {
         hideOverlay()
     }
 
-
-    // var old_car_status: ByteArray = ByteArray(15)
-    // fun copyArray(source: ByteArray): ByteArray { ... }
-
     var currentCarStatus = CarStatus()
     var oldCarStatus = CarStatus()
 
@@ -259,13 +240,7 @@ class BleService : Service() {
         currentCarStatus.isIgnitionOn.value = data[11].u8() == 1
         currentCarStatus.ignitionKnown.value = true
         currentCarStatus.wheel_value.value = data[4].u8()
-        // Unused alternate layout that looked for an ASCII "V1" prefix:
-        // gear = data[3], speed from data[5..6], rpm from data[7..8], voltage = data[4]
     }
-
-    // fun sendKeyEvent(...) { broadcast to VirtualKeyService }
-    // fun parseButtons() { ... }
-    // fun parseWheel() { ... }
 
     var connection_status = BluetoothProfile.STATE_DISCONNECTED
 
@@ -324,9 +299,6 @@ class BleService : Service() {
                 }
 
                 if (!oldCarStatus.isSame(currentCarStatus)) {
-//                        parseButtons()
-//                        parseWheel()
-
                         if (currentCarStatus.speed.value != oldCarStatus.speed.value)
                             updateSpeed(currentCarStatus.speed.value)
                         if (currentCarStatus.gear.value != oldCarStatus.gear.value)
@@ -339,9 +311,6 @@ class BleService : Service() {
                             it.putExtra("car_status", currentCarStatus.toJson())
                             sendBroadcast(it)
                         }
-                        // Notify UI or other components if needed
-                    } else {
-//                        Log.d("BleService", "No change in car status")
                     }
 
                 }
