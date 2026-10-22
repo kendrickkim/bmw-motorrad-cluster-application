@@ -14,14 +14,18 @@ fun ClusterText(
 	text: String,
 	fontSize: Float,
 	fontWeight: FontWeight = FontWeight.Normal,
-	color: Color = Color(0xffaaaaaa)
+	color: Color = Color(0xffaaaaaa),
+	softWrap: Boolean = true,
+	maxLines: Int = Int.MAX_VALUE
 ) {
-    var nfontSize = fontSize / 3;
+	val nfontSize = fontSize / 3f
 	Text(
 		text = text,
 		fontSize = nfontSize.sp,
 		fontWeight = fontWeight,
 		color = color,
+		softWrap = softWrap,
+		maxLines = maxLines,
 		style = TextStyle(
 			// 폰트의 기본 상하단 여백을 제거합니다.
 			platformStyle = PlatformTextStyle(
@@ -35,4 +39,3 @@ fun ClusterText(
 		)
 	)
 }
-

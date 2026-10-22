@@ -46,7 +46,19 @@ data class CarStatus(
     var tripActive: MutableState<Boolean> = mutableStateOf(false),
     var tripStartedAtMillis: MutableState<Long> = mutableStateOf(0L),
     var tripBaseOdometerKm: MutableState<Int> = mutableStateOf(0),
-    var tripBaseLatched: MutableState<Boolean> = mutableStateOf(false)
+    var tripBaseLatched: MutableState<Boolean> = mutableStateOf(false),
+    /** TripB — 시동과 무관하게 유지되는 트립 기준 적산거리 */
+    var tripBBaseOdometerKm: MutableState<Int> = mutableStateOf(0),
+    var tripBBaseLatched: MutableState<Boolean> = mutableStateOf(false),
+    /** TPMS — SettingPreference / TpmsService 로부터 MainActivity가 갱신 */
+    var tpmsEnabled: MutableState<Boolean> = mutableStateOf(false),
+    var tpmsFrontPressureRaw: MutableState<Int> = mutableStateOf(-1),
+    var tpmsRearPressureRaw: MutableState<Int> = mutableStateOf(-1),
+    var tpmsFrontTempC: MutableState<Int> = mutableStateOf(-1),
+    var tpmsRearTempC: MutableState<Int> = mutableStateOf(-1),
+    var tpmsUnitLabel: MutableState<String> = mutableStateOf("Bar"),
+    var tpmsConnection: MutableState<String> = mutableStateOf("DISCONNECTED"),
+    var tpmsStatusMessage: MutableState<String> = mutableStateOf("")
 ) {
     fun setButtons(value: Byte) {
         button_repeat_left.value = (value and 0x01) != 0.toByte()

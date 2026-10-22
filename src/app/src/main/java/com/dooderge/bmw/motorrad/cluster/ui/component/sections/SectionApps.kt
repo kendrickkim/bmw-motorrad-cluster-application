@@ -102,6 +102,9 @@ fun SectionApps(
                 AppBox("Setting", R.drawable.icon_app_setting, onPress = {
                     onApplicationEvent("setting")
                 })
+                AppBox("TPMS", R.drawable.icon_tyre, onPress = {
+                    onApplicationEvent("tpms")
+                })
 
             }
         }

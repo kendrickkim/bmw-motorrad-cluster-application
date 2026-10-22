@@ -95,6 +95,9 @@ dependencies {
     implementation(libs.androidx.camera.view)
     implementation(libs.androidx.camera.extensions)
 
+    // TPMS 센서 QR / 바코드 (Zontes STUDY_PAIR ID)
+    implementation("com.google.mlkit:barcode-scanning:17.3.0")
+
     // flexBox (갤러리 UI 대응)
     implementation(libs.google.flexbox)
 

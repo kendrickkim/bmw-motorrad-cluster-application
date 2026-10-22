@@ -36,6 +36,8 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import com.dooderge.bmw.motorrad.cluster.launcher.LauncherActivity
+import com.dooderge.bmw.motorrad.cluster.tpms.TpmsService
+import com.dooderge.bmw.motorrad.cluster.tpms.TpmsSettingActivity
 import com.dooderge.bmw.motorrad.cluster.ui.screens.MainScreen
 import com.dooderge.bmw.motorrad.cluster.ui.theme.BMWMotorradClusterTheme
 
@@ -97,6 +99,7 @@ class MainActivity : ComponentActivity() {
             addAction(BleService.ACTION_CAR_STATUS_DATA_FILTER)
             addAction(BleService.ACTION_CHECK_INPUT_METHOD)
             addAction(BleService.ACTION_BT_CONNECTION_STATE_CHANGED)
+            addAction(TpmsService.ACTION_STATE)
         }
 
         try {
@@ -125,6 +128,10 @@ class MainActivity : ComponentActivity() {
 
     private val bleDataReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action == TpmsService.ACTION_STATE) {
+                applyTpmsBroadcast(intent)
+                return
+            }
             if (intent?.action == BleService.ACTION_CAR_STATUS_DATA_FILTER) {
                 var json = intent.getStringExtra("car_status").toString()
                 var newCarStatus = CarStatus()
@@ -139,8 +146,37 @@ class MainActivity : ComponentActivity() {
                 carStatus.setBtStatus(connected)
             }
         }
+    }
 
+    private fun applyTpmsBroadcast(intent: Intent) {
+        carStatus.tpmsFrontPressureRaw.value =
+            intent.getIntExtra(TpmsService.EXTRA_FRONT_PRESSURE, -1)
+        carStatus.tpmsRearPressureRaw.value =
+            intent.getIntExtra(TpmsService.EXTRA_REAR_PRESSURE, -1)
+        carStatus.tpmsFrontTempC.value =
+            intent.getIntExtra(TpmsService.EXTRA_FRONT_TEMP, -1)
+        carStatus.tpmsRearTempC.value =
+            intent.getIntExtra(TpmsService.EXTRA_REAR_TEMP, -1)
+        carStatus.tpmsUnitLabel.value =
+            intent.getStringExtra(TpmsService.EXTRA_UNIT) ?: SettingPreference.getTpmsUnit(this).label
+        carStatus.tpmsConnection.value =
+            intent.getStringExtra(TpmsService.EXTRA_CONNECTION) ?: "DISCONNECTED"
+        carStatus.tpmsStatusMessage.value =
+            intent.getStringExtra(TpmsService.EXTRA_STATUS).orEmpty()
+    }
 
+    private fun loadTpmsSettingsIntoCarStatus() {
+        carStatus.tpmsEnabled.value = SettingPreference.isTpmsEnabled(this)
+        carStatus.tpmsUnitLabel.value = SettingPreference.getTpmsUnit(this).label
+        // 부팅 직후·폴링 전에도 마지막 조회값을 표시
+        carStatus.tpmsFrontPressureRaw.value =
+            SettingPreference.getTpmsLastFrontPressure(this)
+        carStatus.tpmsRearPressureRaw.value =
+            SettingPreference.getTpmsLastRearPressure(this)
+        carStatus.tpmsFrontTempC.value =
+            SettingPreference.getTpmsLastFrontTemp(this)
+        carStatus.tpmsRearTempC.value =
+            SettingPreference.getTpmsLastRearTemp(this)
     }
 
     var bleService: BleService? = null
@@ -170,6 +206,8 @@ class MainActivity : ComponentActivity() {
         super.onResume()
 
         registerBleReceiver()
+        // TPMS Settings Save 후 복귀 시 저장된 설정으로 서비스 기동
+        startTpmsIfEnabled()
 
         if (!checkOverlayPermission()) {
             Toast.makeText(
@@ -220,6 +258,7 @@ class MainActivity : ComponentActivity() {
         window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
         SettingPreference.restoreIgnitionTrip(this, carStatus)
+        loadTpmsSettingsIntoCarStatus()
 
         val firstBoot = intent.getBooleanExtra("firstBoot", false)
 
@@ -242,6 +281,9 @@ class MainActivity : ComponentActivity() {
                         onLauncherClick = {
                             val launcherIntent = Intent(this, LauncherActivity::class.java)
                             startActivity(launcherIntent)
+                        },
+                        onTpmsClick = {
+                            startActivity(Intent(this, TpmsSettingActivity::class.java))
                         },
                         onEngineClick = { playLinCapture() },
                         context = this,
@@ -310,13 +352,21 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun startServices() {
-
         val bleServiceIntent = Intent(this, BleService::class.java)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             startForegroundService(bleServiceIntent)
         } else {
             startService(bleServiceIntent)
         }
+        startTpmsIfEnabled()
+    }
+
+    private fun startTpmsIfEnabled() {
+        loadTpmsSettingsIntoCarStatus()
+        if (!SettingPreference.isTpmsEnabled(this)) return
+        if (!SettingPreference.hasTpmsSensorsConfigured(this)) return
+        // 부팅 시 1회 조회 + 1시간 주기 (상시 연결 아님)
+        TpmsService.startPolling(this)
     }
 
     private var linCaptureJob: Job? = null

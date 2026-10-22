@@ -20,6 +20,24 @@ ESP32에서 BLE로 받은 차량 정보를 표시하는 **스마트폰 클러스
 - **HOME / 런처**로 등록 가능 (`SplashActivity`)
 - 페어링 BLE 장치명·주소 설정
 - Headunit Reloaded (`com.andrerinas.headunitrevived`) 연동 대상 포함
+- **TPMS** (설정 → TPMS): 외부 BLE 타이어 공기압 센서 연동 (`TpmsService`)
+
+## 사용 TPMS 장치
+
+이 앱의 TPMS 기능은 아래 AliExpress에서 판매하는 **오토바이용 BLE TPMS**를 기준으로 구현·검증한다.
+
+| 항목 | 내용 |
+|---|---|
+| 구매 링크 | [AliExpress item 1005013156406545](https://ko.aliexpress.com/item/1005013156406545.html) |
+| 연동 앱 (제조사) | Zontes Smart (`tayo.com.ZontesIntelligence`) — EasyConn TPMS 프로토콜 |
+| 스캔 UUID | `0000ffb0-0000-1000-8000-00805f9b34fb` |
+| 데이터 Notify | Service `0000ffe0` / Characteristic **`0000ffe4`** |
+| 명령 Write | Service `0000ffe5` / Characteristic **`0000ffe9`** |
+| 프로토콜 | 커스텀 프레임 `[0xFC][LEN][TYPE][PAYLOAD…][XOR]` |
+
+설정 화면에서 **Settings → TPMS → 설정**으로 진입해 장치 스캔·연결, Front/Rear 압력·온도 확인, 임계값·학습을 할 수 있다. ESP32 클러스터 BLE(`BleService`)와는 **별도** 서비스(`TpmsService`)이다.
+
+프로토콜 상세: `tpms_analyze` 저장소의 [zontes-smart-tpms-ble-analysis.md](../tpms_analyze/docs/zontes-smart-tpms-ble-analysis.md) (같은 워크스페이스 기준 상대 경로).
 
 ## 구조
 
@@ -35,6 +53,14 @@ ESP32 BLE notify (0x180A / 0x2A01)
         ├─ 속도, RPM, 기어, 전압, 이그니션, …
         └─ 오버레이 (선택)
 
+AliExpress BLE TPMS (ffb0 / ffe4·ffe9)
+        │
+        ▼
+   TpmsService (포그라운드)
+        │  Settings → TPMS 설정 화면
+        ▼
+   TpmsSettingActivity
+
 Wonder Wheel / HID / 가상 키
         │
         ▼
@@ -49,7 +75,7 @@ Wonder Wheel / HID / 가상 키
 | 언어 | Kotlin, Java 17 |
 | UI | Jetpack Compose + Material 3 |
 | DI | Hilt |
-| BLE | ESP32 `BMW-WWC-…` 광고 |
+| BLE | ESP32 `BMW-WWC-…` 광고 + (선택) AliExpress TPMS (`ffb0`) |
 | 권한 | Bluetooth, 위치(레거시 스캔), 알림, 오버레이, 접근성 등 |
 
 ## 빌드
@@ -74,6 +100,7 @@ gradlew.bat :app:assembleDebug
 4. (선택) **접근성 → BMW Motorrad Cluster** 활성화.
 5. (선택) 기본 홈 앱으로 지정.
 6. 표시 속도가 다르면 **휠 RPM → 속도** 계수를 조정합니다 (코드 기본값 약 `0.884`).
+7. (선택) **Settings → TPMS**에서 [AliExpress TPMS](https://ko.aliexpress.com/item/1005013156406545.html)를 스캔·연결합니다.
 
 ## BLE LIN 프레임 파싱
 
@@ -117,7 +144,8 @@ bmw-motorrad-cluster-application/
         ├── MainActivity.kt
         ├── BleService.kt
         ├── CarStatus.kt
-        ├── VirtualKeyService.kt
+        ├── SettingActivity.kt
+        ├── tpms/                 # AliExpress BLE TPMS (Zontes/EasyConn)
         ├── launcher/
         └── ui/
 ```
@@ -126,6 +154,8 @@ bmw-motorrad-cluster-application/
 
 - LIN 분석: [LIN_ANALYSIS.md](https://github.com/kendrickkim/bmw-motorrad-cluster-linbus/blob/main/lin_analysis/LIN_ANALYSIS.md)
 - 펌웨어: [bmw-motorrad-cluster-esp32](https://github.com/kendrickkim/bmw-motorrad-cluster-esp32)
+- TPMS GATT 분석: [zontes-smart-tpms-ble-analysis.md](../tpms_analyze/docs/zontes-smart-tpms-ble-analysis.md)
+- 사용 TPMS 제품: [AliExpress 1005013156406545](https://ko.aliexpress.com/item/1005013156406545.html)
 
 ## 참고
 

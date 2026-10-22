@@ -20,6 +20,24 @@ Jetpack Compose Android app that acts as a **phone-based Motorrad cluster**: rec
 - Can register as **HOME / launcher** (`SplashActivity`)
 - Settings for paired BLE device name / address
 - Optional launch target for Headunit Reloaded (`com.andrerinas.headunitrevived`)
+- **TPMS** (Settings → TPMS): external BLE tire-pressure sensors via `TpmsService`
+
+## TPMS hardware used
+
+TPMS support is built and verified against the **motorcycle BLE TPMS** sold on AliExpress below.
+
+| Item | Detail |
+|---|---|
+| Product link | [AliExpress item 1005013156406545](https://ko.aliexpress.com/item/1005013156406545.html) |
+| Vendor companion app | Zontes Smart (`tayo.com.ZontesIntelligence`) — EasyConn TPMS protocol |
+| Scan UUID | `0000ffb0-0000-1000-8000-00805f9b34fb` |
+| Data Notify | Service `0000ffe0` / Characteristic **`0000ffe4`** |
+| Command Write | Service `0000ffe5` / Characteristic **`0000ffe9`** |
+| Frame format | Custom `[0xFC][LEN][TYPE][PAYLOAD…][XOR]` |
+
+Open **Settings → TPMS → 설정** to scan/connect, view Front/Rear pressure & temperature, and adjust thresholds / learn mode. This path uses **`TpmsService`**, separate from the ESP32 cluster **`BleService`**.
+
+Protocol notes (sibling workspace): [zontes-smart-tpms-ble-analysis.md](../tpms_analyze/docs/zontes-smart-tpms-ble-analysis.md).
 
 ## Architecture
 
@@ -35,6 +53,14 @@ ESP32 BLE notify (0x180A / 0x2A01)
         ├─ speed, RPM, gear, voltage, ignition, …
         └─ overlay window (optional)
 
+AliExpress BLE TPMS (ffb0 / ffe4·ffe9)
+        │
+        ▼
+   TpmsService (foreground)
+        │  Settings → TPMS screen
+        ▼
+   TpmsSettingActivity
+
 Wonder Wheel / HID / virtual keys
         │
         ▼
@@ -49,7 +75,7 @@ Wonder Wheel / HID / virtual keys
 | Language | Kotlin, Java 17 |
 | UI | Jetpack Compose + Material 3 |
 | DI | Hilt |
-| BLE device | ESP32 firmware advertising `BMW-WWC-…` |
+| BLE device | ESP32 `BMW-WWC-…` + optional AliExpress TPMS (`ffb0`) |
 | Permissions | Bluetooth (scan/connect), location (legacy scan), notifications, overlay, accessibility (as needed) |
 
 ## Build
@@ -76,6 +102,7 @@ Open `src/` in Android Studio for the usual IDE workflow.
 4. (Optional) Enable **Accessibility → BMW Motorrad Cluster** for `VirtualKeyService`.
 5. (Optional) Set as default home app if you want launcher behavior.
 6. Tune **wheel RPM → speed** factor if indicated speed does not match the bike (default in code ~`0.884`; also stored in preferences).
+7. (Optional) In **Settings → TPMS**, scan and connect the [AliExpress TPMS](https://ko.aliexpress.com/item/1005013156406545.html).
 
 ## BLE LIN frame parsing
 
@@ -130,6 +157,7 @@ bmw-motorrad-cluster-application/
                 ├── CarStatus.kt
                 ├── VirtualKeyService.kt
                 ├── SettingPreference.kt
+                ├── tpms/         # AliExpress BLE TPMS (Zontes/EasyConn)
                 ├── launcher/
                 ├── viewmodel/
                 └── ui/           # Compose screens & cluster widgets
@@ -139,6 +167,8 @@ bmw-motorrad-cluster-application/
 
 - LIN decode: [LIN_ANALYSIS.md](https://github.com/kendrickkim/bmw-motorrad-cluster-linbus/blob/main/lin_analysis/LIN_ANALYSIS.md)
 - Firmware: [bmw-motorrad-cluster-esp32](https://github.com/kendrickkim/bmw-motorrad-cluster-esp32)
+- TPMS GATT analysis: [zontes-smart-tpms-ble-analysis.md](../tpms_analyze/docs/zontes-smart-tpms-ble-analysis.md)
+- TPMS product used: [AliExpress 1005013156406545](https://ko.aliexpress.com/item/1005013156406545.html)
 
 ## Notes
 

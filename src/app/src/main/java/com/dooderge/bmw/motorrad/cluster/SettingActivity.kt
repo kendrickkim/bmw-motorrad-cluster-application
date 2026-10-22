@@ -29,6 +29,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.dooderge.bmw.motorrad.cluster.tpms.TpmsSettingActivity
 
 private val SettingsColorScheme = darkColorScheme(
     primary = Color(0xFF4376A1),
@@ -92,14 +93,14 @@ class SettingActivity : ComponentActivity() {
                 }
                 onDispose { unregisterReceiver(receiver) }
             }
-            var strSpeedFactor by remember {
-                mutableStateOf(
-                    SettingPreference.getWheelRpmToSpeedFactor(
-                        this
-                    ).toString()
-                )
-            }
-
+            // Speed Factor UI 비활성 — 필요 시 복원
+            // var strSpeedFactor by remember {
+            //     mutableStateOf(
+            //         SettingPreference.getWheelRpmToSpeedFactor(
+            //             this
+            //         ).toString()
+            //     )
+            // }
 
             LaunchedEffect(Unit) {
                 // 초기 선택된 장치 이름 설정
@@ -179,29 +180,30 @@ class SettingActivity : ComponentActivity() {
                                         )
                                     }
                                 }
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    SettingLabel("Speed Factor")
-                                    TextField(
-                                        value = strSpeedFactor,
-                                        onValueChange = { strSpeedFactor = it },
-                                        singleLine = true,
-                                        modifier = Modifier.weight(1f),
-                                        colors = TextFieldDefaults.colors(
-                                            focusedContainerColor = Color.Black,
-                                            unfocusedContainerColor = Color.Black,
-                                            focusedIndicatorColor = Color(0xFF4376A1),
-                                            unfocusedIndicatorColor = Color(0xFF666666),
-                                            cursorColor = Color(0xFF4376A1),
-                                            focusedTextColor = Color.White,
-                                            unfocusedTextColor = Color.White
-                                        ),
-                                        textStyle = TextStyle(
-                                            fontSize = 20.sp,
-                                            color = Color.White,
-                                            fontWeight = FontWeight.Medium
-                                        )
-                                    )
-                                }
+                                // Speed Factor 항목 제거 (주석 유지)
+                                // Row(verticalAlignment = Alignment.CenterVertically) {
+                                //     SettingLabel("Speed Factor")
+                                //     TextField(
+                                //         value = strSpeedFactor,
+                                //         onValueChange = { strSpeedFactor = it },
+                                //         singleLine = true,
+                                //         modifier = Modifier.weight(1f),
+                                //         colors = TextFieldDefaults.colors(
+                                //             focusedContainerColor = Color.Black,
+                                //             unfocusedContainerColor = Color.Black,
+                                //             focusedIndicatorColor = Color(0xFF4376A1),
+                                //             unfocusedIndicatorColor = Color(0xFF666666),
+                                //             cursorColor = Color(0xFF4376A1),
+                                //             focusedTextColor = Color.White,
+                                //             unfocusedTextColor = Color.White
+                                //         ),
+                                //         textStyle = TextStyle(
+                                //             fontSize = 20.sp,
+                                //             color = Color.White,
+                                //             fontWeight = FontWeight.Medium
+                                //         )
+                                //     )
+                                // }
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     SettingLabel("LIN Test")
                                     Switch(
@@ -240,6 +242,30 @@ class SettingActivity : ComponentActivity() {
                                         )
                                     }
                                 }
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    SettingLabel("TPMS")
+                                    Button(
+                                        onClick = {
+                                            startActivity(
+                                                Intent(
+                                                    this@SettingActivity,
+                                                    TpmsSettingActivity::class.java
+                                                )
+                                            )
+                                        },
+                                        modifier = Modifier.height(56.dp),
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = Color.White,
+                                            contentColor = Color.Black
+                                        )
+                                    ) {
+                                        Text(
+                                            text = "설정",
+                                            fontSize = 18.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
                             }
                             Column(
                                 modifier = Modifier
@@ -256,12 +282,12 @@ class SettingActivity : ComponentActivity() {
                                             deviceName = selectedDeviceName,
                                             address = selectedDeviceAddress
                                         )
-                                        SettingPreference.setWheelRpmToSpeedFactor(
-                                            context = this@SettingActivity,
-                                            factor = strSpeedFactor.toFloatOrNull() ?: 1.0f
-                                        )
-                                        BleService.WHEEL_RPM_TO_SPEED =
-                                            SettingPreference.getWheelRpmToSpeedFactor(this@SettingActivity)
+                                        // SettingPreference.setWheelRpmToSpeedFactor(
+                                        //     context = this@SettingActivity,
+                                        //     factor = strSpeedFactor.toFloatOrNull() ?: 1.0f
+                                        // )
+                                        // BleService.WHEEL_RPM_TO_SPEED =
+                                        //     SettingPreference.getWheelRpmToSpeedFactor(this@SettingActivity)
                                         finish()
                                     }
                                 )
@@ -276,9 +302,9 @@ class SettingActivity : ComponentActivity() {
                                     onClick = {
                                         selectedDeviceName = ""
                                         selectedDeviceAddress = ""
-                                        strSpeedFactor =
-                                            SettingPreference.getWheelRpmToSpeedFactor(this@SettingActivity)
-                                                .toString()
+                                        // strSpeedFactor =
+                                        //     SettingPreference.getWheelRpmToSpeedFactor(this@SettingActivity)
+                                        //         .toString()
                                     }
                                 )
                             }

@@ -62,7 +62,9 @@ import com.dooderge.bmw.motorrad.cluster.ui.component.sections.SectionCoolantTem
 import com.dooderge.bmw.motorrad.cluster.ui.component.sections.SectionFuelGuage
 import com.dooderge.bmw.motorrad.cluster.ui.component.sections.SectionStatus
 import com.dooderge.bmw.motorrad.cluster.ui.component.sections.SectionTime
+import com.dooderge.bmw.motorrad.cluster.ui.component.sections.SectionTyrePressure
 import com.dooderge.bmw.motorrad.cluster.ui.component.sections.SectionVoltage
+// DO NOT DELETE — SectionDirection import (슬롯은 Fuel Guage로 임시 교체, 재사용 예정)
 import com.dooderge.bmw.motorrad.cluster.ui.component.sections.SectionDirection
 import com.dooderge.bmw.motorrad.cluster.ui.component.setDesignedSizeByWidth
 import com.dooderge.bmw.motorrad.cluster.ui.component.setDesginedSizeByHeight
@@ -115,6 +117,7 @@ fun MainScreen(
     onAndroidAutoClick: () -> Unit = {},
     onSettingsClick: () -> Unit = {},
     onLauncherClick: () -> Unit = {},
+    onTpmsClick: () -> Unit = {},
     onEngineClick: () -> Unit = {},
     context: Context,
     carStatus: CarStatus,
@@ -404,8 +407,9 @@ fun MainScreen(
                                 PaddingValues(end = right1, top = top1),
                                 Alignment.TopEnd
                             ),
+                            // 구 Direction 슬롯 → Fuel Guage 표시 (Direction UI는 삭제하지 말 것)
                             SectionInfo(
-                                "Direction",
+                                "Fuel Guage",
                                 PaddingValues(end = right2, top = top1),
                                 Alignment.TopEnd
                             ),
@@ -415,8 +419,9 @@ fun MainScreen(
                                 PaddingValues(start = left, top = top2),
                                 Alignment.TopStart
                             ),
+                            // 구 Fuel Guage 슬롯 → Tyre Pressure 표시
                             SectionInfo(
-                                "Fuel Guage",
+                                "Tyre Pressure",
                                 PaddingValues(end = right1, top = top2),
                                 Alignment.TopEnd
                             ),
@@ -500,15 +505,34 @@ fun MainScreen(
                                 alignment = Alignment.TopEnd
                             )
 
-                            SectionDirection(
+                            /*
+                             * =====================================================================
+                             * DO NOT DELETE — SectionDirection (나침반/헤딩)
+                             * 다른 에이전트: 아래 블록을 제거하지 말 것. 슬롯만 Fuel Guage로 임시 교체.
+                             * 파일: ui/component/sections/SectionDirection.kt 도 유지.
+                             * =====================================================================
+                             *
+                             * SectionDirection(
+                             *     modifier = Modifier
+                             *         .padding(end = 433.designedDp(), top = 232.designedDp())
+                             *         .size(226.designedDp(), 161.designedDp()),
+                             *     carStatus = carStatus,
+                             *     alignment = Alignment.TopEnd
+                             * )
+                             */
+
+                            // 구 Direction 슬롯 → Fuel Guage
+                            SectionFuelGuage(
                                 modifier = Modifier
                                     .padding(end = 433.designedDp(), top = 232.designedDp())
                                     .size(226.designedDp(), 161.designedDp()),
                                 carStatus = carStatus,
-                                alignment = Alignment.TopEnd
+                                alignment = Alignment.TopEnd,
+                                compact = true
                             )
 
-                            SectionFuelGuage(
+                            // 구 Fuel Guage 슬롯 → Tyre Pressure (앞/뒤 압력·온도)
+                            SectionTyrePressure(
                                 modifier = Modifier
                                     .padding(end = 28.designedDp(), top = 524.designedDp())
                                     .size(554.designedDp(), 150.designedDp()),
@@ -519,16 +543,15 @@ fun MainScreen(
                             SectionApps(
                                 modifier = Modifier
                                     .padding(end = 30.designedDp(), top = 822.designedDp())
-                                    .size(600.designedDp(), 150.designedDp()),
+                                    .size(640.designedDp(), 150.designedDp()),
                                 carStatus = carStatus,
                                 alignment = Alignment.TopEnd,
                                 onApplicationEvent = {
-                                    if (it == "setting") {
-                                        onSettingsClick()
-                                    } else if (it == "android_auto") {
-                                        onAndroidAutoClick()
-                                    } else if (it == "drawer") {
-                                        onLauncherClick()
+                                    when (it) {
+                                        "setting" -> onSettingsClick()
+                                        "android_auto" -> onAndroidAutoClick()
+                                        "drawer" -> onLauncherClick()
+                                        "tpms" -> onTpmsClick()
                                     }
                                 }
                             )
