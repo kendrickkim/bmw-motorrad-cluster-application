@@ -459,7 +459,7 @@ class TpmsService : Service() {
             NOTIFICATION_ID,
             NotificationCompat.Builder(this, CHANNEL_ID)
                 .setContentTitle("TPMS")
-                .setContentText("LYTPMS scan monitoring")
+                .setContentText("TPMS scan monitoring")
                 .setSmallIcon(R.drawable.ic_launcher_foreground)
                 .build()
         )

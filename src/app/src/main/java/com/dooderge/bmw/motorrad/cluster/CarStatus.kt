@@ -59,6 +59,8 @@ data class CarStatus(
     var tpmsFrontBatteryPct: MutableState<Int> = mutableStateOf(-1),
     var tpmsRearBatteryPct: MutableState<Int> = mutableStateOf(-1),
     var tpmsUnitLabel: MutableState<String> = mutableStateOf("Bar"),
+    var tpmsPressureMinKpa: MutableState<Int> = mutableStateOf(180),
+    var tpmsPressureMaxKpa: MutableState<Int> = mutableStateOf(320),
     var tpmsConnection: MutableState<String> = mutableStateOf("DISCONNECTED"),
     var tpmsStatusMessage: MutableState<String> = mutableStateOf("")
 ) {
