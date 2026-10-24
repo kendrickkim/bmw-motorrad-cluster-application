@@ -161,6 +161,10 @@ class MainActivity : ComponentActivity() {
             intent.getIntExtra(TpmsService.EXTRA_FRONT_TEMP, -1)
         carStatus.tpmsRearTempC.value =
             intent.getIntExtra(TpmsService.EXTRA_REAR_TEMP, -1)
+        carStatus.tpmsFrontBatteryPct.value =
+            intent.getIntExtra(TpmsService.EXTRA_FRONT_BATTERY, -1)
+        carStatus.tpmsRearBatteryPct.value =
+            intent.getIntExtra(TpmsService.EXTRA_REAR_BATTERY, -1)
         carStatus.tpmsUnitLabel.value =
             intent.getStringExtra(TpmsService.EXTRA_UNIT) ?: SettingPreference.getTpmsUnit(this).label
         carStatus.tpmsConnection.value =
@@ -181,6 +185,10 @@ class MainActivity : ComponentActivity() {
             SettingPreference.getTpmsLastFrontTemp(this)
         carStatus.tpmsRearTempC.value =
             SettingPreference.getTpmsLastRearTemp(this)
+        carStatus.tpmsFrontBatteryPct.value =
+            SettingPreference.getTpmsLastFrontBattery(this)
+        carStatus.tpmsRearBatteryPct.value =
+            SettingPreference.getTpmsLastRearBattery(this)
     }
 
     var bleService: BleService? = null

@@ -12,10 +12,11 @@ import android.os.Looper
 import android.util.Log
 
 /**
- * TPMS Advanced 스타일 Advertise 스캐너 (GATT Connect 없음).
+ * LYTPMS 공식 앱(`BaseTireBleService`)과 동일한 Advertise 스캔.
  *
- * UUID 필터만 쓰면 일부 펌웨어가 목록에 안 잡히므로,
- * 기본은 **무필터 스캔 + 소프트웨어 파싱** (오픈소스 UUID 필터는 보조).
+ * - 무필터 LE scan (`ScanFilter` empty)
+ * - `SCAN_MODE_LOW_LATENCY`
+ * - 연속 수신 시 60초 스캔 → 2초 휴지 → 재스캔 사이클
  */
 class TpmsAdvScanner(
     private val context: Context,
@@ -25,12 +26,28 @@ class TpmsAdvScanner(
 ) {
     companion object {
         private const val TAG = "TpmsAdvScanner"
+        /** Official: stop after 60_000ms then restart after 2_000ms */
+        const val SCAN_BURST_MS = 60_000L
+        const val SCAN_PAUSE_MS = 2_000L
     }
 
     private val mainHandler = Handler(Looper.getMainLooper())
     private val seen = LinkedHashMap<Int, ScannedTpmsDevice>()
     private var scanning = false
+    private var cycleEnabled = false
     private var leScanner: android.bluetooth.le.BluetoothLeScanner? = null
+
+    private val stopBurstRunnable = Runnable {
+        stopScanInternal()
+        onState(TpmsConnectionState.LISTENING, "Scan pause…")
+        if (cycleEnabled) {
+            mainHandler.postDelayed(restartBurstRunnable, SCAN_PAUSE_MS)
+        }
+    }
+
+    private val restartBurstRunnable = Runnable {
+        if (cycleEnabled) startBurst()
+    }
 
     private val callback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult) {
@@ -45,12 +62,33 @@ class TpmsAdvScanner(
             Log.w(TAG, "scan failed code=$errorCode")
             scanning = false
             onState(TpmsConnectionState.ERROR, "Scan failed ($errorCode)")
+            // Official: retry after 2s (or 8s if error 2)
+            val delay = if (errorCode == 2) 8_000L else SCAN_PAUSE_MS
+            if (cycleEnabled) {
+                mainHandler.postDelayed(restartBurstRunnable, delay)
+            }
         }
     }
 
+    /** 설정 UI / 단발 스캔: 사이클 없이 연속 스캔 */
     @SuppressLint("MissingPermission")
     fun startScan(mode: Int = ScanSettings.SCAN_MODE_LOW_LATENCY) {
-        // 이미 스캔 중이면 재시작 (설정 화면에서 목록이 비는 문제 방지)
+        cycleEnabled = false
+        mainHandler.removeCallbacks(stopBurstRunnable)
+        mainHandler.removeCallbacks(restartBurstRunnable)
+        startBurst(mode)
+    }
+
+    /** 폴링 ON: 공식 앱과 동일 60s/2s 사이클 */
+    fun startCycling() {
+        cycleEnabled = true
+        mainHandler.removeCallbacks(stopBurstRunnable)
+        mainHandler.removeCallbacks(restartBurstRunnable)
+        startBurst()
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun startBurst(mode: Int = ScanSettings.SCAN_MODE_LOW_LATENCY) {
         if (scanning) {
             stopScanInternal()
         }
@@ -58,6 +96,9 @@ class TpmsAdvScanner(
             ?.adapter
         if (adapter == null || !adapter.isEnabled) {
             onState(TpmsConnectionState.ERROR, "Bluetooth is off")
+            if (cycleEnabled) {
+                mainHandler.postDelayed(restartBurstRunnable, 3_000L)
+            }
             return
         }
         leScanner = adapter.bluetoothLeScanner
@@ -67,37 +108,35 @@ class TpmsAdvScanner(
         }
         val settings = ScanSettings.Builder()
             .setScanMode(mode)
-            .setMatchMode(ScanSettings.MATCH_MODE_AGGRESSIVE)
             .setReportDelay(0)
             .build()
         try {
-            // 무필터: 센서가 Service UUID 를 광고에 안 넣는 경우도 수신
-            leScanner?.startScan(null, settings, callback)
+            // Official: empty ScanFilter list
+            val filters = listOf(ScanFilter.Builder().build())
+            leScanner?.startScan(filters, settings, callback)
             scanning = true
-            onState(TpmsConnectionState.SCANNING, "Scanning for TPMS…")
-            Log.i(TAG, "scan started (no filter)")
+            onState(TpmsConnectionState.SCANNING, "Scanning LYTPMS…")
+            Log.i(TAG, "scan burst started cycle=$cycleEnabled")
+            if (cycleEnabled) {
+                mainHandler.postDelayed(stopBurstRunnable, SCAN_BURST_MS)
+            }
         } catch (e: SecurityException) {
             Log.e(TAG, "scan permission", e)
             onState(TpmsConnectionState.ERROR, "Scan permission missing")
         } catch (e: Exception) {
-            Log.e(TAG, "unfiltered startScan failed, try UUID filters", e)
-            try {
-                val filters = TpmsBleUuids.SCAN_SERVICE_UUIDS.map {
-                    ScanFilter.Builder().setServiceUuid(it).build()
-                }
-                leScanner?.startScan(filters, settings, callback)
-                scanning = true
-                onState(TpmsConnectionState.SCANNING, "Scanning for TPMS… (UUID)")
-                Log.i(TAG, "scan started (UUID filters)")
-            } catch (e2: Exception) {
-                Log.e(TAG, "startScan", e2)
-                onState(TpmsConnectionState.ERROR, "Could not start scan")
+            Log.e(TAG, "startScan failed", e)
+            onState(TpmsConnectionState.ERROR, "Could not start scan")
+            if (cycleEnabled) {
+                mainHandler.postDelayed(restartBurstRunnable, 5_000L)
             }
         }
     }
 
     @SuppressLint("MissingPermission")
     fun stopScan() {
+        cycleEnabled = false
+        mainHandler.removeCallbacks(stopBurstRunnable)
+        mainHandler.removeCallbacks(restartBurstRunnable)
         stopScanInternal()
         onState(TpmsConnectionState.DISCONNECTED, "Scan stopped")
         Log.i(TAG, "scan stopped")
@@ -122,6 +161,9 @@ class TpmsAdvScanner(
     }
 
     fun release() {
+        cycleEnabled = false
+        mainHandler.removeCallbacks(stopBurstRunnable)
+        mainHandler.removeCallbacks(restartBurstRunnable)
         stopScanInternal()
         seen.clear()
     }
@@ -131,8 +173,7 @@ class TpmsAdvScanner(
         mainHandler.post {
             onSample(sample)
             val device = ScannedTpmsDevice(
-                name = result.scanRecord?.deviceName
-                    ?: sample.brand.name,
+                name = result.scanRecord?.deviceName ?: "LYTPMS",
                 address = sample.macAddress.ifBlank {
                     result.device?.address.orEmpty()
                 },
@@ -140,16 +181,16 @@ class TpmsAdvScanner(
                 sensorId = sample.sensorId,
                 sensorIdHex = sample.sensorIdHex,
                 brand = sample.brand,
-                suggestedSlot = sample.suggestedSlot(),
+                suggestedSlot = null,
                 pressureKpaCents = sample.pressureKpaCents,
                 temperatureC = sample.temperatureC
             )
             seen[sample.sensorId] = device
             onScanList(seen.values.sortedByDescending { it.rssi })
-            if (scanning) {
+            if (scanning || cycleEnabled) {
                 onState(
                     TpmsConnectionState.LISTENING,
-                    "Received ${seen.size} · ${sample.brand} ${sample.sensorIdHex}"
+                    "Received ${seen.size} · ${sample.sensorIdHex}"
                 )
             }
         }

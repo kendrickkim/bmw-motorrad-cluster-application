@@ -27,28 +27,8 @@ enum class TirePosition(val label: String) {
     }
 }
 
-/** Sysgration advertise 위치 바이트 → 클러스터 슬롯 */
-enum class AdvWheelLocation(val wire: Int) {
-    FRONT_LEFT(0x80),
-    FRONT_RIGHT(0x81),
-    REAR_LEFT(0x82),
-    REAR_RIGHT(0x83);
-
-    fun toClusterSlot(): TirePosition = when (this) {
-        FRONT_LEFT, FRONT_RIGHT -> TirePosition.FRONT
-        REAR_LEFT, REAR_RIGHT -> TirePosition.REAR
-    }
-
-    companion object {
-        fun fromWire(b: Int): AdvWheelLocation? =
-            entries.firstOrNull { it.wire == (b and 0xFF) }
-    }
-}
-
 enum class TpmsSensorBrand {
-    SYSGRATION,
-    PECHAM,
-    WICARLINK,
+    LYTPMS,
     UNKNOWN
 }
 
@@ -76,7 +56,6 @@ data class TireReading(
 ) {
     val hasPressure: Boolean get() = pressureKpaCents >= 0
 
-    /** 하위 호환: CarStatus / broadcast 가 쓰던 raw 이름 */
     val pressureRaw: Int get() = pressureKpaCents
 
     fun pressureWithUnit(unit: TpmsPressureUnit = TpmsPressureUnit.BAR): String {
@@ -85,7 +64,7 @@ data class TireReading(
         return when (unit) {
             TpmsPressureUnit.BAR -> String.format("%.2f Bar", kpa / 100.0)
             TpmsPressureUnit.KPA -> String.format("%.1f kPa", kpa)
-            TpmsPressureUnit.PSI -> String.format("%.1f PSI", kpa / 6.895)
+            TpmsPressureUnit.PSI -> String.format("%.1f PSI", kpa / TpmsProtocol.PSI_TO_KPA)
         }
     }
 }
@@ -93,10 +72,7 @@ data class TireReading(
 data class WheelDeviceInfo(
     val name: String = "",
     val address: String = "",
-    /**
-     * Sysgration/Wicarlink/Pecham(hash) 센서 ID.
-     * Pecham 은 MAC.hashCode() 로 **음수 가능**. 미등록은 Int.MIN_VALUE.
-     */
+    /** LYTPMS 6hex ID 를 int 로 저장. 미등록은 Int.MIN_VALUE. */
     val sensorId: Int = Int.MIN_VALUE,
     val connection: TpmsConnectionState = TpmsConnectionState.DISCONNECTED
 ) {
@@ -118,7 +94,6 @@ data class TpmsDeviceState(
     val statusMessage: String = "",
     val front: TireReading = TireReading(TirePosition.FRONT),
     val rear: TireReading = TireReading(TirePosition.REAR),
-    /** 임계값도 kPa 단위 (로컬 알림용, 센서 Write 없음) */
     val pressureMinKpa: Int = 180,
     val pressureMaxKpa: Int = 320,
     val temperatureMax: Int = 90,
@@ -166,7 +141,8 @@ data class AdvTireSample(
     val rssi: Int,
     val brand: TpmsSensorBrand,
     val macAddress: String = "",
-    val advLocation: AdvWheelLocation? = null
+    val voltage: Float = 0f,
+    val state: Int = 0
 ) {
-    fun suggestedSlot(): TirePosition? = advLocation?.toClusterSlot()
+    fun suggestedSlot(): TirePosition? = null
 }

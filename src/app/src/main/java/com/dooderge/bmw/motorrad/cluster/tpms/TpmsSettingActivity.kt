@@ -13,6 +13,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -24,7 +25,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -70,8 +70,8 @@ private val TpmsSettingsColorScheme = darkColorScheme(
 )
 
 /**
- * TPMS Advanced 설정: Advertise 스캔으로 센서 발견 → sensorId 바인딩.
- * GATT Connect / STUDY_PAIR / Write 임계값 전송 없음.
+ * LYTPMS 설정: Advertise 스캔으로 센서 발견 → 6hex ID 바인딩.
+ * GATT Connect / Write 없음 (공식 LYTPMS 앱과 동일).
  */
 class TpmsSettingActivity : ComponentActivity() {
     private var tpmsService: TpmsService? = null
@@ -170,36 +170,19 @@ class TpmsSettingActivity : ComponentActivity() {
             fun applyQr(raw: String, target: TirePosition) {
                 when (val payload = TpmsQrParser.parse(raw)) {
                     is TpmsQrPayload.SensorHexId -> {
-                        tpmsService?.bindSensorId(target, payload.sensorId, "QR ${payload.hex}")
+                        tpmsService?.bindSensorId(target, payload.sensorId, "LYTPMS ${payload.hex}")
                         registerHint = "Bound: ${payload.hex}"
                         Toast.makeText(this, registerHint, Toast.LENGTH_SHORT).show()
                     }
                     is TpmsQrPayload.MultiSensorIds -> {
                         payload.ids.forEach { (slot, id) ->
-                            tpmsService?.bindSensorId(slot, id, "QR")
+                            tpmsService?.bindSensorId(slot, id, "LYTPMS")
                         }
                         registerHint = "QR bound ${payload.ids.size} sensors"
                         Toast.makeText(this, registerHint, Toast.LENGTH_SHORT).show()
                     }
-                    is TpmsQrPayload.BleAddress -> {
-                        // Pecham: MAC hash 를 sensorId 로 사용
-                        val id = payload.address.hashCode()
-                        tpmsService?.bindSensorId(target, id, "MAC ${payload.address}")
-                        SettingPreference.setTpmsFrontDevice(
-                            this,
-                            if (target == TirePosition.FRONT) "Pecham" else
-                                SettingPreference.getTpmsFrontName(this).orEmpty(),
-                            if (target == TirePosition.FRONT) payload.address else
-                                SettingPreference.getTpmsFrontAddress(this).orEmpty()
-                        )
-                        if (target == TirePosition.REAR) {
-                            SettingPreference.setTpmsRearDevice(this, "Pecham", payload.address)
-                        }
-                        registerHint = "MAC bound to ID"
-                        Toast.makeText(this, registerHint, Toast.LENGTH_SHORT).show()
-                    }
                     null -> {
-                        registerHint = "QR not recognized (HHHHHH&HHHHHH or 6 hex)"
+                        registerHint = "QR not recognized (6 hex or HHHHHH&HHHHHH)"
                         Toast.makeText(this, registerHint, Toast.LENGTH_SHORT).show()
                     }
                 }
@@ -220,13 +203,13 @@ class TpmsSettingActivity : ComponentActivity() {
                                 .padding(20.dp)
                         ) {
                             Text(
-                                "TPMS Settings (Advertise)",
+                                "TPMS Settings (LYTPMS)",
                                 fontSize = 22.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Color.White
                             )
                             Text(
-                                "Sysgration / Pecham / Wicarlink · no GATT connection",
+                                "Official LYTPMS advertise · UUID FBB0 · no GATT",
                                 fontSize = 13.sp,
                                 color = Color(0xFFAAAAAA)
                             )
@@ -325,23 +308,23 @@ class TpmsSettingActivity : ComponentActivity() {
                                         )
                                         TextButton(
                                             onClick = {
-                                            val p = TpmsQrParser.parse(manualHex)
-                                            if (p is TpmsQrPayload.SensorHexId) {
-                                                applyQr(manualHex, scanTarget ?: TirePosition.FRONT)
-                                            } else {
-                                                Toast.makeText(
-                                                    this@TpmsSettingActivity,
-                                                    "6 hex ID required",
-                                                    Toast.LENGTH_SHORT
-                                                ).show()
-                                            }
-                                        },
+                                                val p = TpmsQrParser.parse(manualHex)
+                                                if (p is TpmsQrPayload.SensorHexId) {
+                                                    applyQr(manualHex, scanTarget ?: TirePosition.FRONT)
+                                                } else {
+                                                    Toast.makeText(
+                                                        this@TpmsSettingActivity,
+                                                        "6 hex ID required",
+                                                        Toast.LENGTH_SHORT
+                                                    ).show()
+                                                }
+                                            },
                                             shape = RoundedCornerShape(10.dp)
                                         ) { Text("Register front") }
                                         TextButton(
                                             onClick = {
-                                            applyQr(manualHex, TirePosition.REAR)
-                                        },
+                                                applyQr(manualHex, TirePosition.REAR)
+                                            },
                                             shape = RoundedCornerShape(10.dp)
                                         ) { Text("Register rear") }
                                     }
@@ -411,7 +394,11 @@ class TpmsSettingActivity : ComponentActivity() {
                                         setResult(RESULT_OK)
                                         finish()
                                     }
-                                    ActionButton("Refresh", Modifier.weight(1f)) {
+                                    ActionButton(
+                                        "Fetch reading",
+                                        Modifier.weight(1f),
+                                        fontSize = 13.sp
+                                    ) {
                                         sendTpmsAction(TpmsService.ACTION_REFRESH, "both")
                                     }
                                     ActionButton("Back", Modifier.weight(1f)) { finish() }
@@ -449,7 +436,7 @@ class TpmsSettingActivity : ComponentActivity() {
                                 text = {
                                     Column(Modifier.verticalScroll(rememberScrollState())) {
                                         Text(
-                                            "Sorted by advertise RSSI · fbb0 / 27a5",
+                                            "LYTPMS advertise · sorted by RSSI · UUID FBB0",
                                             color = Color(0xFFAAAAAA),
                                             fontSize = 13.sp
                                         )
@@ -493,9 +480,9 @@ class TpmsSettingActivity : ComponentActivity() {
                                 confirmButton = {
                                     TextButton(
                                         onClick = {
-                                        scanTarget = null
-                                        sendTpmsAction(TpmsService.ACTION_STOP_SCAN, "both")
-                                    },
+                                            scanTarget = null
+                                            sendTpmsAction(TpmsService.ACTION_STOP_SCAN, "both")
+                                        },
                                         shape = RoundedCornerShape(10.dp)
                                     ) { Text("Close") }
                                 }
@@ -590,8 +577,8 @@ class TpmsSettingActivity : ComponentActivity() {
             )
             TextButton(
                 onClick = {
-                text.toIntOrNull()?.let { onCommit(it) }
-            },
+                    text.toIntOrNull()?.let { onCommit(it) }
+                },
                 shape = RoundedCornerShape(10.dp)
             ) { Text("Apply") }
         }

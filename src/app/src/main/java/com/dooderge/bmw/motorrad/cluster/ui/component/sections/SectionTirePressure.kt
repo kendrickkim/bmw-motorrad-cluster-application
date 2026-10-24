@@ -26,8 +26,14 @@ fun SectionTirePressure(
     val unit = TpmsPressureUnit.fromLabel(carStatus.tpmsUnitLabel.value)
     val frontP = TpmsProtocol.formatPressure(carStatus.tpmsFrontPressureRaw.value, unit)
     val rearP = TpmsProtocol.formatPressure(carStatus.tpmsRearPressureRaw.value, unit)
-    val frontT = formatTemp(carStatus.tpmsFrontTempC.value)
-    val rearT = formatTemp(carStatus.tpmsRearTempC.value)
+    val frontMeta = formatTempBattery(
+        carStatus.tpmsFrontTempC.value,
+        carStatus.tpmsFrontBatteryPct.value
+    )
+    val rearMeta = formatTempBattery(
+        carStatus.tpmsRearTempC.value,
+        carStatus.tpmsRearBatteryPct.value
+    )
 
     SectionBox(
         modifier = modifier,
@@ -42,12 +48,12 @@ fun SectionTirePressure(
         ) {
             WheelPressureColumn(
                 pressure = frontP,
-                temperature = frontT,
+                meta = frontMeta,
                 modifier = Modifier.weight(1f)
             )
             WheelPressureColumn(
                 pressure = rearP,
-                temperature = rearT,
+                meta = rearMeta,
                 modifier = Modifier.weight(1f)
             )
         }
@@ -57,7 +63,7 @@ fun SectionTirePressure(
 @Composable
 private fun WheelPressureColumn(
     pressure: String,
-    temperature: String,
+    meta: String,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -71,7 +77,7 @@ private fun WheelPressureColumn(
             color = Color(0xffaaaaaa)
         )
         ClusterText(
-            text = temperature,
+            text = meta,
             fontSize = 54f,
             fontWeight = FontWeight.Bold,
             color = Color(0xff888888)
@@ -79,5 +85,8 @@ private fun WheelPressureColumn(
     }
 }
 
-private fun formatTemp(celsius: Int): String =
-    if (celsius < 0) "-- °C" else "$celsius °C"
+private fun formatTempBattery(celsius: Int, batteryPct: Int): String {
+    val temp = if (celsius < 0) "-- °C" else "$celsius °C"
+    val bat = if (batteryPct < 0) "--%" else "$batteryPct%"
+    return "$temp  $bat"
+}

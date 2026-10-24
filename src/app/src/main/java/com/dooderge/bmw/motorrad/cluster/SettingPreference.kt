@@ -29,6 +29,8 @@ class SettingPreference private constructor() {
         private const val TPMS_LAST_REAR_PRESSURE_KEY = "tpmsLastRearPressure"
         private const val TPMS_LAST_FRONT_TEMP_KEY = "tpmsLastFrontTemp"
         private const val TPMS_LAST_REAR_TEMP_KEY = "tpmsLastRearTemp"
+        private const val TPMS_LAST_FRONT_BATTERY_KEY = "tpmsLastFrontBattery"
+        private const val TPMS_LAST_REAR_BATTERY_KEY = "tpmsLastRearBattery"
         private const val TPMS_LAST_READ_AT_KEY = "tpmsLastReadAt"
 
         fun saveSettings(context: Context, deviceName: String, address: String) {
@@ -324,7 +326,9 @@ class SettingPreference private constructor() {
             frontPressureRaw: Int,
             rearPressureRaw: Int,
             frontTempC: Int,
-            rearTempC: Int
+            rearTempC: Int,
+            frontBatteryPct: Int = -1,
+            rearBatteryPct: Int = -1
         ) {
             context.getSharedPreferences(PREFERENCE_NAME, Context.MODE_PRIVATE)
                 .edit()
@@ -332,6 +336,8 @@ class SettingPreference private constructor() {
                 .putInt(TPMS_LAST_REAR_PRESSURE_KEY, rearPressureRaw)
                 .putInt(TPMS_LAST_FRONT_TEMP_KEY, frontTempC)
                 .putInt(TPMS_LAST_REAR_TEMP_KEY, rearTempC)
+                .putInt(TPMS_LAST_FRONT_BATTERY_KEY, frontBatteryPct)
+                .putInt(TPMS_LAST_REAR_BATTERY_KEY, rearBatteryPct)
                 .putLong(TPMS_LAST_READ_AT_KEY, System.currentTimeMillis())
                 .apply()
         }
@@ -351,6 +357,14 @@ class SettingPreference private constructor() {
         fun getTpmsLastRearTemp(context: Context): Int =
             context.getSharedPreferences(PREFERENCE_NAME, Context.MODE_PRIVATE)
                 .getInt(TPMS_LAST_REAR_TEMP_KEY, -1)
+
+        fun getTpmsLastFrontBattery(context: Context): Int =
+            context.getSharedPreferences(PREFERENCE_NAME, Context.MODE_PRIVATE)
+                .getInt(TPMS_LAST_FRONT_BATTERY_KEY, -1)
+
+        fun getTpmsLastRearBattery(context: Context): Int =
+            context.getSharedPreferences(PREFERENCE_NAME, Context.MODE_PRIVATE)
+                .getInt(TPMS_LAST_REAR_BATTERY_KEY, -1)
 
         fun getTpmsLastReadAt(context: Context): Long =
             context.getSharedPreferences(PREFERENCE_NAME, Context.MODE_PRIVATE)

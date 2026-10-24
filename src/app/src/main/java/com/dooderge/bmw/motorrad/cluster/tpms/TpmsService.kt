@@ -16,8 +16,8 @@ import com.dooderge.bmw.motorrad.cluster.R
 import com.dooderge.bmw.motorrad.cluster.SettingPreference
 
 /**
- * TPMS Advanced 방식: Advertise 스캔만으로 Front/Rear 압력 수신.
- * GATT Connect / Write / STUDY_PAIR 없음.
+ * LYTPMS Advertise 스캔 서비스.
+ * 공식 앱(`BleServiceLY`)과 같이 GATT Connect 없이 Front/Rear 압력 수신.
  */
 class TpmsService : Service() {
     companion object {
@@ -33,7 +33,6 @@ class TpmsService : Service() {
             "com.dooderge.bmw.motorrad.cluster.TPMS_START_POLLING"
         const val ACTION_STOP_POLLING =
             "com.dooderge.bmw.motorrad.cluster.TPMS_STOP_POLLING"
-        /** @deprecated GATT 제거 — START_POLLING 과 동일 */
         const val ACTION_CONNECT =
             "com.dooderge.bmw.motorrad.cluster.TPMS_CONNECT"
         const val ACTION_DISCONNECT =
@@ -48,14 +47,14 @@ class TpmsService : Service() {
         const val EXTRA_REAR_PRESSURE = "rearPressure"
         const val EXTRA_FRONT_TEMP = "frontTemp"
         const val EXTRA_REAR_TEMP = "rearTemp"
+        const val EXTRA_FRONT_BATTERY = "frontBattery"
+        const val EXTRA_REAR_BATTERY = "rearBattery"
         const val EXTRA_UNIT = "unit"
         const val EXTRA_KEEP_CONNECTED = "keepConnected"
 
         private const val CHANNEL_ID = "tpms_channel"
         private const val NOTIFICATION_ID = 42
         private const val TAG = "TpmsService"
-        private const val POLL_INTERVAL_MS = 60L * 60L * 1000L
-        private const val REFRESH_SCAN_MS = 20_000L
 
         fun start(context: Context) {
             val intent = Intent(context, TpmsService::class.java)
@@ -103,21 +102,6 @@ class TpmsService : Service() {
     var latestState: TpmsDeviceState = TpmsDeviceState()
         private set
 
-    private val hourlyPollRunnable = object : Runnable {
-        override fun run() {
-            if (!pollingEnabled) return
-            beginRefreshScan(reason = "hourly")
-            mainHandler.postDelayed(this, POLL_INTERVAL_MS)
-        }
-    }
-
-    private val stopRefreshRunnable = Runnable {
-        if (!settingsUiOpen) {
-            scanner?.stopScan()
-            publishStatus("Waiting for the next scan")
-        }
-    }
-
     override fun onBind(intent: Intent?): IBinder = binder
 
     override fun onCreate() {
@@ -151,7 +135,7 @@ class TpmsService : Service() {
         if (SettingPreference.isTpmsEnabled(this) &&
             SettingPreference.hasTpmsSensorsConfigured(this)
         ) {
-            startPollingSchedule(runImmediately = true)
+            startPollingSchedule()
         }
     }
 
@@ -160,10 +144,14 @@ class TpmsService : Service() {
             ACTION_SCAN -> {
                 settingsUiOpen = true
                 scanner?.clearScanList()
+                // 설정 화면: 연속 스캔 (사이클 휴지 없음)
                 scanner?.startScan()
             }
             ACTION_STOP_SCAN -> {
-                if (!pollingEnabled || !settingsUiOpen) {
+                settingsUiOpen = false
+                if (pollingEnabled) {
+                    scanner?.startCycling()
+                } else {
                     scanner?.stopScan()
                 }
             }
@@ -177,30 +165,37 @@ class TpmsService : Service() {
             ACTION_CONNECT, ACTION_START_POLLING -> {
                 SettingPreference.setTpmsEnabled(this, true)
                 seedFromPrefs()
-                startPollingSchedule(runImmediately = true)
+                startPollingSchedule()
             }
-            ACTION_REFRESH -> beginRefreshScan(reason = "manual")
+            ACTION_REFRESH -> {
+                if (settingsUiOpen) {
+                    scanner?.startScan()
+                } else if (pollingEnabled) {
+                    scanner?.startCycling()
+                } else {
+                    scanner?.startScan()
+                }
+            }
             null -> Unit
         }
         return START_STICKY
     }
 
-    /** 설정 화면에서 센서 ID 바인딩 후 호출 */
     fun bindSensor(position: TirePosition, sample: ScannedTpmsDevice) {
         when (position) {
             TirePosition.FRONT -> {
                 SettingPreference.setTpmsFrontSensor(
                     this,
-                    name = "${sample.brand.name} ${sample.name}",
-                    address = sample.address,
+                    name = "LYTPMS ${sample.sensorIdHex}",
+                    address = sample.sensorIdHex,
                     sensorId = sample.sensorId
                 )
             }
             TirePosition.REAR -> {
                 SettingPreference.setTpmsRearSensor(
                     this,
-                    name = "${sample.brand.name} ${sample.name}",
-                    address = sample.address,
+                    name = "LYTPMS ${sample.sensorIdHex}",
+                    address = sample.sensorIdHex,
                     sensorId = sample.sensorId
                 )
             }
@@ -216,11 +211,7 @@ class TpmsService : Service() {
                 isAlarm = false,
                 rssi = sample.rssi,
                 brand = sample.brand,
-                macAddress = sample.address,
-                advLocation = sample.suggestedSlot?.let {
-                    if (it == TirePosition.FRONT) AdvWheelLocation.FRONT_LEFT
-                    else AdvWheelLocation.REAR_LEFT
-                }
+                macAddress = sample.address
             )
         )
     }
@@ -229,50 +220,48 @@ class TpmsService : Service() {
         val hex = TpmsProtocol.sensorIdToHex(sensorId)
         when (position) {
             TirePosition.FRONT ->
-                SettingPreference.setTpmsFrontSensor(this, label.ifBlank { "Sensor" }, hex, sensorId)
+                SettingPreference.setTpmsFrontSensor(
+                    this,
+                    label.ifBlank { "LYTPMS $hex" },
+                    hex,
+                    sensorId
+                )
             TirePosition.REAR ->
-                SettingPreference.setTpmsRearSensor(this, label.ifBlank { "Sensor" }, hex, sensorId)
+                SettingPreference.setTpmsRearSensor(
+                    this,
+                    label.ifBlank { "LYTPMS $hex" },
+                    hex,
+                    sensorId
+                )
         }
         seedFromPrefs()
-        // QR만 등록하고 스캔이 꺼져 있으면 수신 불가 → 즉시 스캔
         settingsUiOpen = true
-        beginRefreshScan(reason = "bind")
+        scanner?.startScan()
     }
 
     override fun onDestroy() {
         stopPollingSchedule()
-        mainHandler.removeCallbacks(stopRefreshRunnable)
         scanner?.release()
         scanner = null
         super.onDestroy()
     }
 
-    private fun startPollingSchedule(runImmediately: Boolean) {
+    private fun startPollingSchedule() {
         if (!SettingPreference.hasTpmsSensorsConfigured(this)) {
             Log.i(TAG, "polling skipped — no sensors")
             return
         }
         pollingEnabled = true
-        mainHandler.removeCallbacks(hourlyPollRunnable)
-        if (runImmediately) beginRefreshScan(reason = "boot")
-        mainHandler.postDelayed(hourlyPollRunnable, POLL_INTERVAL_MS)
-        Log.i(TAG, "polling started")
+        if (settingsUiOpen) {
+            scanner?.startScan()
+        } else {
+            scanner?.startCycling()
+        }
+        Log.i(TAG, "LYTPMS continuous scan started")
     }
 
     private fun stopPollingSchedule() {
         pollingEnabled = false
-        mainHandler.removeCallbacks(hourlyPollRunnable)
-        mainHandler.removeCallbacks(stopRefreshRunnable)
-    }
-
-    private fun beginRefreshScan(reason: String) {
-        if (!SettingPreference.hasTpmsSensorsConfigured(this) && !settingsUiOpen) return
-        publishStatus("Scanning TPMS… ($reason)")
-        scanner?.startScan()
-        mainHandler.removeCallbacks(stopRefreshRunnable)
-        if (!settingsUiOpen) {
-            mainHandler.postDelayed(stopRefreshRunnable, REFRESH_SCAN_MS)
-        }
     }
 
     private fun applySample(sample: AdvTireSample) {
@@ -287,13 +276,19 @@ class TpmsService : Service() {
         var matched = false
 
         fun idMatches(boundId: Int, boundHex: String?): Boolean {
-            if (sample.sensorId == boundId) return true
-            // QR 로 저장한 6hex 와 advertise ID hex 비교 (엔디안/표시 불일치 대비)
-            val hex = sample.sensorIdHex.uppercase()
-            if (!boundHex.isNullOrBlank() && boundHex.length == 6 &&
-                hex.equals(boundHex, ignoreCase = true)
-            ) {
-                return true
+            // 공식 앱: TireData.id.equals(TireBean.ID) — 6hex 문자열 비교가 기준
+            val sampleHex = sample.sensorIdHex.uppercase()
+            if (!boundHex.isNullOrBlank()) {
+                val normalized = boundHex.replace(":", "").uppercase()
+                if (normalized.length == 6 && sampleHex.equals(normalized, ignoreCase = true)) {
+                    return true
+                }
+            }
+            if (boundId != Int.MIN_VALUE && sample.sensorId == boundId) return true
+            // 이전 Sysgration LE 인코딩으로 저장된 ID 호환
+            if (boundId != Int.MIN_VALUE) {
+                val legacyHex = legacySysgrationHex(boundId)
+                if (legacyHex.equals(sampleHex, ignoreCase = true)) return true
             }
             return false
         }
@@ -305,8 +300,8 @@ class TpmsService : Service() {
                 frontDevice = latestState.frontDevice.copy(
                     connection = TpmsConnectionState.LISTENING,
                     sensorId = sample.sensorId,
-                    name = sample.brand.name,
-                    address = sample.macAddress.ifBlank { latestState.frontDevice.address }
+                    name = "LYTPMS",
+                    address = sample.sensorIdHex
                 ),
                 statusMessage = "Front ${sample.sensorIdHex} received"
             )
@@ -318,29 +313,11 @@ class TpmsService : Service() {
                 rearDevice = latestState.rearDevice.copy(
                     connection = TpmsConnectionState.LISTENING,
                     sensorId = sample.sensorId,
-                    name = sample.brand.name,
-                    address = sample.macAddress.ifBlank { latestState.rearDevice.address }
+                    name = "LYTPMS",
+                    address = sample.sensorIdHex
                 ),
                 statusMessage = "Rear ${sample.sensorIdHex} received"
             )
-        }
-
-        // 미바인딩 + Sysgration 위치 힌트 (미리보기)
-        if (!matched && sample.advLocation != null) {
-            val slot = sample.advLocation.toClusterSlot()
-            if (slot == TirePosition.FRONT && !hasFront) {
-                latestState = latestState.copy(
-                    front = toReading(slot, sample),
-                    statusMessage = "Unbound front candidate ${sample.sensorIdHex}"
-                )
-                matched = true
-            } else if (slot == TirePosition.REAR && !hasRear) {
-                latestState = latestState.copy(
-                    rear = toReading(slot, sample),
-                    statusMessage = "Unbound rear candidate ${sample.sensorIdHex}"
-                )
-                matched = true
-            }
         }
 
         if (matched) {
@@ -350,10 +327,24 @@ class TpmsService : Service() {
         } else {
             Log.d(
                 TAG,
-                "sample not bound: ${sample.brand} id=${sample.sensorId} hex=${sample.sensorIdHex} " +
-                    "frontBound=$hasFront/$frontId rearBound=$hasRear/$rearId"
+                "sample not bound: id=${sample.sensorIdHex} " +
+                    "frontBound=$hasFront/${TpmsProtocol.sensorIdToHex(frontId)} " +
+                    "rearBound=$hasRear/${TpmsProtocol.sensorIdToHex(rearId)}"
             )
         }
+    }
+
+    /** 구버전 Sysgration LE hex6ToSensorId 로 저장된 값 → 표시 hex */
+    private fun legacySysgrationHex(id: Int): String {
+        val buf = java.nio.ByteBuffer.allocate(4)
+            .order(java.nio.ByteOrder.LITTLE_ENDIAN)
+            .putInt(id)
+            .array()
+        return "%02X%02X%02X".format(
+            buf[1].toInt() and 0xFF,
+            buf[2].toInt() and 0xFF,
+            buf[3].toInt() and 0xFF
+        )
     }
 
     private fun toReading(position: TirePosition, sample: AdvTireSample) = TireReading(
@@ -375,7 +366,9 @@ class TpmsService : Service() {
             frontPressureRaw = latestState.front.pressureKpaCents,
             rearPressureRaw = latestState.rear.pressureKpaCents,
             frontTempC = latestState.front.temperatureC,
-            rearTempC = latestState.rear.temperatureC
+            rearTempC = latestState.rear.temperatureC,
+            frontBatteryPct = latestState.front.battery,
+            rearBatteryPct = latestState.rear.battery
         )
     }
 
@@ -384,14 +377,18 @@ class TpmsService : Service() {
         val rearP = SettingPreference.getTpmsLastRearPressure(this)
         val frontT = SettingPreference.getTpmsLastFrontTemp(this)
         val rearT = SettingPreference.getTpmsLastRearTemp(this)
+        val frontB = SettingPreference.getTpmsLastFrontBattery(this)
+        val rearB = SettingPreference.getTpmsLastRearBattery(this)
         latestState = latestState.copy(
             front = latestState.front.copy(
                 pressureKpaCents = frontP,
-                temperatureC = frontT
+                temperatureC = frontT,
+                battery = frontB
             ),
             rear = latestState.rear.copy(
                 pressureKpaCents = rearP,
-                temperatureC = rearT
+                temperatureC = rearT,
+                battery = rearB
             ),
             statusMessage = if (frontP >= 0 || rearP >= 0) "Cached TPMS values" else latestState.statusMessage
         )
@@ -441,6 +438,8 @@ class TpmsService : Service() {
             it.putExtra(EXTRA_REAR_PRESSURE, state.rear.pressureKpaCents)
             it.putExtra(EXTRA_FRONT_TEMP, state.front.temperatureC)
             it.putExtra(EXTRA_REAR_TEMP, state.rear.temperatureC)
+            it.putExtra(EXTRA_FRONT_BATTERY, state.front.battery)
+            it.putExtra(EXTRA_REAR_BATTERY, state.rear.battery)
             it.putExtra(EXTRA_UNIT, state.displayUnit.label)
             sendBroadcast(it)
         }
@@ -460,7 +459,7 @@ class TpmsService : Service() {
             NOTIFICATION_ID,
             NotificationCompat.Builder(this, CHANNEL_ID)
                 .setContentTitle("TPMS")
-                .setContentText("Advertise scan monitoring")
+                .setContentText("LYTPMS scan monitoring")
                 .setSmallIcon(R.drawable.ic_launcher_foreground)
                 .build()
         )
