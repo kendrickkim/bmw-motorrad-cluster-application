@@ -27,6 +27,40 @@ object TpmsProtocol {
 
     fun centsToKpa(cents: Int): Float = cents / 100f
 
+    fun kpaToUnitValue(kpa: Float, unit: TpmsPressureUnit): Float = when (unit) {
+        TpmsPressureUnit.BAR -> kpa / 100f
+        TpmsPressureUnit.KPA -> kpa
+        TpmsPressureUnit.PSI -> kpa / PSI_TO_KPA
+    }
+
+    fun unitValueToKpa(value: Float, unit: TpmsPressureUnit): Float = when (unit) {
+        TpmsPressureUnit.BAR -> value * 100f
+        TpmsPressureUnit.KPA -> value
+        TpmsPressureUnit.PSI -> value * PSI_TO_KPA
+    }
+
+    /** 임계값 입력 필드용 표시 문자열 (선택 단위) */
+    fun formatThresholdValue(kpa: Int, unit: TpmsPressureUnit): String {
+        val v = kpaToUnitValue(kpa.toFloat(), unit)
+        return when (unit) {
+            TpmsPressureUnit.BAR -> String.format("%.2f", v)
+            TpmsPressureUnit.KPA -> String.format("%.0f", v)
+            TpmsPressureUnit.PSI -> String.format("%.1f", v)
+        }
+    }
+
+    fun parseThresholdToKpa(text: String, unit: TpmsPressureUnit): Int? {
+        val value = text.trim().replace(',', '.').toFloatOrNull() ?: return null
+        return unitValueToKpa(value, unit).toInt()
+    }
+
+    /** 압력(cents)이 Low~High(kPa) 범위 밖이면 true */
+    fun isPressureOutOfRange(cents: Int, minKpa: Int, maxKpa: Int): Boolean {
+        if (cents < 0) return false
+        val kpa = centsToKpa(cents)
+        return kpa < minKpa || kpa > maxKpa
+    }
+
     fun formatPressure(cents: Int, unit: TpmsPressureUnit): String {
         if (cents < 0) return "-- ${unit.label}"
         val kpa = centsToKpa(cents)

@@ -203,15 +203,10 @@ class TpmsSettingActivity : ComponentActivity() {
                                 .padding(20.dp)
                         ) {
                             Text(
-                                "TPMS Settings (LYTPMS)",
+                                "TPMS Settings",
                                 fontSize = 22.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Color.White
-                            )
-                            Text(
-                                "Official LYTPMS advertise · UUID FBB0 · no GATT",
-                                fontSize = 13.sp,
-                                color = Color(0xFFAAAAAA)
                             )
                             Spacer(Modifier.height(8.dp))
                             Row(
@@ -256,6 +251,8 @@ class TpmsSettingActivity : ComponentActivity() {
                                         info = state.frontDevice,
                                         reading = state.front,
                                         unit = state.displayUnit,
+                                        pressureMinKpa = state.pressureMinKpa,
+                                        pressureMaxKpa = state.pressureMaxKpa,
                                         onScan = {
                                             scanTarget = TirePosition.FRONT
                                             sendTpmsAction(TpmsService.ACTION_SCAN, "front")
@@ -273,6 +270,8 @@ class TpmsSettingActivity : ComponentActivity() {
                                         info = state.rearDevice,
                                         reading = state.rear,
                                         unit = state.displayUnit,
+                                        pressureMinKpa = state.pressureMinKpa,
+                                        pressureMaxKpa = state.pressureMaxKpa,
                                         onScan = {
                                             scanTarget = TirePosition.REAR
                                             sendTpmsAction(TpmsService.ACTION_SCAN, "rear")
@@ -349,13 +348,35 @@ class TpmsSettingActivity : ComponentActivity() {
                                         }
                                     }
 
-                                    ThresholdRow("Low kPa", state.pressureMinKpa) {
-                                        SettingPreference.setTpmsPressureMin(this@TpmsSettingActivity, it)
-                                        state = state.copy(pressureMinKpa = it)
+                                    PressureThresholdRow(
+                                        label = "Low ${state.displayUnit.label}",
+                                        valueKpa = state.pressureMinKpa,
+                                        unit = state.displayUnit
+                                    ) { kpa ->
+                                        SettingPreference.setTpmsPressureMin(
+                                            this@TpmsSettingActivity,
+                                            kpa
+                                        )
+                                        state = state.copy(
+                                            pressureMinKpa = SettingPreference.getTpmsPressureMin(
+                                                this@TpmsSettingActivity
+                                            )
+                                        )
                                     }
-                                    ThresholdRow("High kPa", state.pressureMaxKpa) {
-                                        SettingPreference.setTpmsPressureMax(this@TpmsSettingActivity, it)
-                                        state = state.copy(pressureMaxKpa = it)
+                                    PressureThresholdRow(
+                                        label = "High ${state.displayUnit.label}",
+                                        valueKpa = state.pressureMaxKpa,
+                                        unit = state.displayUnit
+                                    ) { kpa ->
+                                        SettingPreference.setTpmsPressureMax(
+                                            this@TpmsSettingActivity,
+                                            kpa
+                                        )
+                                        state = state.copy(
+                                            pressureMaxKpa = SettingPreference.getTpmsPressureMax(
+                                                this@TpmsSettingActivity
+                                            )
+                                        )
                                     }
                                     ThresholdRow("Temp °C", state.temperatureMax) {
                                         SettingPreference.setTpmsTemperatureMax(this@TpmsSettingActivity, it)
@@ -436,7 +457,7 @@ class TpmsSettingActivity : ComponentActivity() {
                                 text = {
                                     Column(Modifier.verticalScroll(rememberScrollState())) {
                                         Text(
-                                            "LYTPMS advertise · sorted by RSSI · UUID FBB0",
+                                            "Sorted by RSSI",
                                             color = Color(0xFFAAAAAA),
                                             fontSize = 13.sp
                                         )
@@ -527,9 +548,17 @@ class TpmsSettingActivity : ComponentActivity() {
         info: WheelDeviceInfo,
         reading: TireReading,
         unit: TpmsPressureUnit,
+        pressureMinKpa: Int,
+        pressureMaxKpa: Int,
         onScan: () -> Unit,
         onQr: () -> Unit
     ) {
+        val alarm = TpmsProtocol.isPressureOutOfRange(
+            reading.pressureKpaCents,
+            pressureMinKpa,
+            pressureMaxKpa
+        )
+        val readingColor = if (alarm) Color(0xFFFF9800) else Color.White
         Column(
             Modifier
                 .fillMaxWidth()
@@ -546,14 +575,50 @@ class TpmsSettingActivity : ComponentActivity() {
             )
             Text(
                 reading.pressureWithUnit(unit) + " / " +
-                    if (reading.temperatureC >= 0) "${reading.temperatureC}°C" else "--°C",
-                color = Color.White,
+                    (if (reading.temperatureC >= 0) "${reading.temperatureC}°C" else "--°C") +
+                    " / " +
+                    (if (reading.battery >= 0) "${reading.battery}%" else "--%"),
+                color = readingColor,
                 fontSize = 14.sp
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(onClick = onScan, shape = RoundedCornerShape(10.dp)) { Text("Scan") }
                 Button(onClick = onQr, shape = RoundedCornerShape(10.dp)) { Text("QR") }
             }
+        }
+    }
+
+    @Composable
+    private fun PressureThresholdRow(
+        label: String,
+        valueKpa: Int,
+        unit: TpmsPressureUnit,
+        onCommitKpa: (Int) -> Unit
+    ) {
+        var text by remember(valueKpa, unit) {
+            mutableStateOf(TpmsProtocol.formatThresholdValue(valueKpa, unit))
+        }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(label, color = Color.White, modifier = Modifier.widthIn(100.dp), fontSize = 14.sp)
+            TextField(
+                value = text,
+                onValueChange = { text = it },
+                singleLine = true,
+                modifier = Modifier.weight(1f),
+                textStyle = TextStyle(color = Color.White, fontSize = 16.sp),
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = Color.Black,
+                    unfocusedContainerColor = Color.Black,
+                    focusedTextColor = Color.White,
+                    unfocusedTextColor = Color.White
+                )
+            )
+            TextButton(
+                onClick = {
+                    TpmsProtocol.parseThresholdToKpa(text, unit)?.let { onCommitKpa(it) }
+                },
+                shape = RoundedCornerShape(10.dp)
+            ) { Text("Apply") }
         }
     }
 

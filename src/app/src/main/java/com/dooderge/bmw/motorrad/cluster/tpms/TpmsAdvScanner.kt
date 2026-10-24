@@ -115,7 +115,7 @@ class TpmsAdvScanner(
             val filters = listOf(ScanFilter.Builder().build())
             leScanner?.startScan(filters, settings, callback)
             scanning = true
-            onState(TpmsConnectionState.SCANNING, "Scanning LYTPMS…")
+            onState(TpmsConnectionState.SCANNING, "Scanning TPMS…")
             Log.i(TAG, "scan burst started cycle=$cycleEnabled")
             if (cycleEnabled) {
                 mainHandler.postDelayed(stopBurstRunnable, SCAN_BURST_MS)

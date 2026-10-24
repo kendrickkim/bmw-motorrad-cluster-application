@@ -176,6 +176,8 @@ class MainActivity : ComponentActivity() {
     private fun loadTpmsSettingsIntoCarStatus() {
         carStatus.tpmsEnabled.value = SettingPreference.isTpmsEnabled(this)
         carStatus.tpmsUnitLabel.value = SettingPreference.getTpmsUnit(this).label
+        carStatus.tpmsPressureMinKpa.value = SettingPreference.getTpmsPressureMin(this)
+        carStatus.tpmsPressureMaxKpa.value = SettingPreference.getTpmsPressureMax(this)
         // 부팅 직후·폴링 전에도 마지막 조회값을 표시
         carStatus.tpmsFrontPressureRaw.value =
             SettingPreference.getTpmsLastFrontPressure(this)
@@ -385,6 +387,11 @@ class MainActivity : ComponentActivity() {
 
     private fun playLinCapture() {
         if (!SettingPreference.isLinTestEnabled(this)) return
+        // 시뮬레이션 중 재터치 → 중단
+        if (carStatus.linCapturePlaying.value || linCaptureJob?.isActive == true) {
+            stopLinCapture()
+            return
+        }
         val generation = ++linCaptureGeneration
         linCaptureJob?.cancel()
         linCaptureJob = lifecycleScope.launch(Dispatchers.IO) {
@@ -425,6 +432,13 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    private fun stopLinCapture() {
+        linCaptureGeneration++
+        linCaptureJob?.cancel()
+        linCaptureJob = null
+        carStatus.linCapturePlaying.value = false
     }
 
     private data class LinCaptureSample(
@@ -470,7 +484,7 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
-        linCaptureJob?.cancel()
+        stopLinCapture()
         super.onDestroy()
     }
 
