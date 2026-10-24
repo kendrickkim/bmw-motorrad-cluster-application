@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- TPMS / tire app icon — white glyph, tinted by SectionApps ColorFilter -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="150dp"
+    android:height="150dp"
+    android:viewportWidth="150"
+    android:viewportHeight="150">
+
+    <!-- outer rounded square frame -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeWidth="4"
+        android:strokeColor="#FFFFFFFF"
+        android:pathData="M28,12 h94 a16,16 0 0 1 16,16 v94 a16,16 0 0 1 -16,16 h-94 a16,16 0 0 1 -16,-16 v-94 a16,16 0 0 1 16,-16 z" />
+
+    <!-- tire ring (evenOdd hole) -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:fillType="evenOdd"
+        android:pathData="M75,32 a43,43 0 1,1 0,86 a43,43 0 1,1 0,-86 Z
+            M75,48 a27,27 0 1,1 0,54 a27,27 0 1,1 0,-54 Z" />
+
+    <!-- hub -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:fillType="evenOdd"
+        android:pathData="M75,60 a15,15 0 1,1 0,30 a15,15 0 1,1 0,-30 Z
+            M75,68 a7,7 0 1,1 0,14 a7,7 0 1,1 0,-14 Z" />
+
+    <!-- valve / pressure mark -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M71,20 h8 v12 h-8 z" />
+</vector>

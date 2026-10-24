@@ -13,13 +13,31 @@ Jetpack Compose Android app that acts as a **phone-based Motorrad cluster**: rec
 ## Features
 
 - Landscape **reverseLandscape** cluster UI (Compose)
-- Foreground **`BleService`**: connect to `BMW-WWC-*`, parse car-status notifies, broadcast UI updates
+- Foreground **`BleService`**: connect to `BMW-WWC-*`, decode raw LIN frames, broadcast UI updates
 - Optional floating **overlay** (speed / gear) with saved position
 - Configurable **wheel-RPM → speed** factor (SharedPreferences)
 - **`VirtualKeyService`** (Accessibility) for virtual key handling from Wonder Wheel paths
 - Can register as **HOME / launcher** (`SplashActivity`)
 - Settings for paired BLE device name / address
 - Optional launch target for Headunit Reloaded (`com.andrerinas.headunitrevived`)
+- **TPMS** (Settings → TPMS): external BLE tire-pressure sensors via `TpmsService`
+
+## TPMS hardware used
+
+TPMS support follows the official **LYTPMS 1.0.3** app (`com.zl.dev.tire`) — **Advertise-only**, no GATT connect.
+
+| Item | Detail |
+|---|---|
+| Companion app | LYTPMS 1.0.3 (Wicarlink) |
+| Transport | BLE Advertise scan (no GATT) |
+| Identity | AD prefix `0201060303B0FB` (Flags + UUID `FBB0`) |
+| Pressure | `raw * 3.144` kPa |
+| Temperature | `raw - 55` °C |
+| Sensor ID | 6-digit hex (e.g. `AABBCC`) |
+
+Open **Settings → TPMS** to scan sensors, bind Front/Rear IDs, and view pressure & temperature. Uses **`TpmsService`**, separate from ESP32 **`BleService`**.
+
+Protocol notes: [docs/lytpms-ble-analysis.md](docs/lytpms-ble-analysis.md).
 
 ## Architecture
 
@@ -35,6 +53,14 @@ ESP32 BLE notify (0x180A / 0x2A01)
         ├─ speed, RPM, gear, voltage, ignition, …
         └─ overlay window (optional)
 
+LYTPMS Advertise (FBB0 / 0201060303B0FB)
+        │
+        ▼
+   TpmsService (foreground)
+        │  Settings → TPMS screen
+        ▼
+   TpmsSettingActivity
+
 Wonder Wheel / HID / virtual keys
         │
         ▼
@@ -49,7 +75,7 @@ Wonder Wheel / HID / virtual keys
 | Language | Kotlin, Java 17 |
 | UI | Jetpack Compose + Material 3 |
 | DI | Hilt |
-| BLE device | ESP32 firmware advertising `BMW-WWC-…` |
+| BLE device | ESP32 `BMW-WWC-…` + optional LYTPMS Advertise (`FBB0`) |
 | Permissions | Bluetooth (scan/connect), location (legacy scan), notifications, overlay, accessibility (as needed) |
 
 ## Build
@@ -76,35 +102,40 @@ Open `src/` in Android Studio for the usual IDE workflow.
 4. (Optional) Enable **Accessibility → BMW Motorrad Cluster** for `VirtualKeyService`.
 5. (Optional) Set as default home app if you want launcher behavior.
 6. Tune **wheel RPM → speed** factor if indicated speed does not match the bike (default in code ~`0.884`; also stored in preferences).
+7. (Optional) In **Settings → TPMS**, scan LYTPMS sensors and bind Front/Rear IDs.
 
-## BLE car-status parsing
+## BLE LIN frame parsing
 
 The app listens for notifications on:
 
 - Service UUID: `0000180a-0000-1000-8000-00805f9b34fb`
 - Characteristic UUID: `00002a01-0000-1000-8000-00805f9b34fb`
 
-Primary layout expected from current ESP32 `buildData()` (15-byte style):
+On the bike the ESP32 sends one raw frame per notify (`LinFrame`, 7 bytes). `LinFrame.kt` decodes it with `lin_analysis`. A 12-byte-or-longer packet is still the bench packed car-status blob.
 
 | Offset | Field |
 |:------:|-------|
-| 0 | Button flags |
-| 2 | Wonder Wheel value |
-| 3 | Gear |
-| 4 | Voltage raw |
-| 5–6 | Wheel RPM (LE) |
-| 7–8 | Engine RPM (LE) |
-| 9 | Ignition |
+| 0 | Message ID |
+| 1 | Data-0 |
+| 2 | Data-1 |
+| 3 | Data-2 |
+| 4 | Data-3 |
+| 5 | Data-4 |
+| 6 | Data-5 |
 
-`BleService` also contains a legacy parse branch; keep firmware and app offsets aligned when changing the packet.
+| ID | Fields written into `CarStatus` |
+|:--:|---------------------------------|
+| `0x14` | Handle bitmaps (horn, hazard, ABS, ESA, cruise, high beam, trip, info), Wonder Wheel in/out and rotation direction |
+| `0x20` | Ignition, speed, fuel range, ambient light |
+| `0x2B` | Odometer when Data-1 is `0x25` |
+| `0xE2` | RPM, gear, throttle, coolant temperature, ASC, oil |
+| `0xE9` | Average speed, secondary speed, voltage raw (`Data-3`; UI shows it as `/ 10` volts), fuel fault, general fault |
 
-Speed is derived as:
+Speed from ID `0x20` uses the bike factor in `lin_analysis`:
 
 ```text
-speed_kmh ≈ wheel_rpm × WHEEL_RPM_TO_SPEED
+speed_kmh ≈ rear_wheel_rpm × 0.14
 ```
-
-Voltage UI typically shows `raw / 10`.
 
 ## Repository layout
 
@@ -126,6 +157,7 @@ bmw-motorrad-cluster-application/
                 ├── CarStatus.kt
                 ├── VirtualKeyService.kt
                 ├── SettingPreference.kt
+                ├── tpms/         # LYTPMS Advertise TPMS
                 ├── launcher/
                 ├── viewmodel/
                 └── ui/           # Compose screens & cluster widgets
@@ -135,6 +167,7 @@ bmw-motorrad-cluster-application/
 
 - LIN decode: [LIN_ANALYSIS.md](https://github.com/kendrickkim/bmw-motorrad-cluster-linbus/blob/main/lin_analysis/LIN_ANALYSIS.md)
 - Firmware: [bmw-motorrad-cluster-esp32](https://github.com/kendrickkim/bmw-motorrad-cluster-esp32)
+- TPMS analysis: [docs/lytpms-ble-analysis.md](docs/lytpms-ble-analysis.md)
 
 ## Notes
 

@@ -1,7 +1,6 @@
 package com.dooderge.bmw.motorrad.cluster
 
 import android.Manifest
-import android.accessibilityservice.AccessibilityService
 import android.annotation.SuppressLint
 import android.content.BroadcastReceiver
 import android.content.ComponentName
@@ -16,7 +15,6 @@ import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
 import android.provider.Settings
-import android.text.TextUtils
 import android.util.Log
 import android.view.KeyEvent
 import android.view.View
@@ -29,9 +27,23 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import com.dooderge.bmw.motorrad.cluster.launcher.LauncherActivity
+import com.dooderge.bmw.motorrad.cluster.tpms.TpmsService
+import com.dooderge.bmw.motorrad.cluster.tpms.TpmsSettingActivity
 import com.dooderge.bmw.motorrad.cluster.ui.screens.MainScreen
 import com.dooderge.bmw.motorrad.cluster.ui.theme.BMWMotorradClusterTheme
+import java.time.LocalDateTime
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
+import java.time.format.DateTimeParseException
 
 class MainActivity : ComponentActivity() {
 
@@ -78,7 +90,7 @@ class MainActivity : ComponentActivity() {
         if (permissions.all { it.value }) {
             startServices()
         } else {
-            Toast.makeText(this, "필수 권한이 허용되지 않았습니다.", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "Required permissions were not granted.", Toast.LENGTH_LONG).show()
         }
     }
 
@@ -91,6 +103,7 @@ class MainActivity : ComponentActivity() {
             addAction(BleService.ACTION_CAR_STATUS_DATA_FILTER)
             addAction(BleService.ACTION_CHECK_INPUT_METHOD)
             addAction(BleService.ACTION_BT_CONNECTION_STATE_CHANGED)
+            addAction(TpmsService.ACTION_STATE)
         }
 
         try {
@@ -119,29 +132,63 @@ class MainActivity : ComponentActivity() {
 
     private val bleDataReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action == TpmsService.ACTION_STATE) {
+                applyTpmsBroadcast(intent)
+                return
+            }
             if (intent?.action == BleService.ACTION_CAR_STATUS_DATA_FILTER) {
                 var json = intent.getStringExtra("car_status").toString()
                 var newCarStatus = CarStatus()
                 newCarStatus.fromJson(json)
                 carStatus.copyFrom(newCarStatus)
                 carStatus.setBtStatus(true)
-
-//                Log.d("MainActivity", "Received car status: $carStatus")
+                SettingPreference.updateIgnitionTrip(this@MainActivity, carStatus)
             } else if (intent?.action == BleService.ACTION_CHECK_INPUT_METHOD) {
-//                Toast.makeText(
-//                    applicationContext,
-//                    "블루투스 입력장치 설정이 올바르지 않습니다.\n" +
-//                            "장치 초기화 > 블루투스 키보드 장치 연결 > 장치 재설정하세요",
-//                    Toast.LENGTH_SHORT
-//                ).show()
                 carStatus.setBtStatus(false)
             } else if (intent?.action == BleService.ACTION_BT_CONNECTION_STATE_CHANGED) {
                 val connected = intent.getBooleanExtra(BleService.EXTRA_BT_CONNECTED, false)
                 carStatus.setBtStatus(connected)
             }
         }
+    }
 
+    private fun applyTpmsBroadcast(intent: Intent) {
+        carStatus.tpmsFrontPressureRaw.value =
+            intent.getIntExtra(TpmsService.EXTRA_FRONT_PRESSURE, -1)
+        carStatus.tpmsRearPressureRaw.value =
+            intent.getIntExtra(TpmsService.EXTRA_REAR_PRESSURE, -1)
+        carStatus.tpmsFrontTempC.value =
+            intent.getIntExtra(TpmsService.EXTRA_FRONT_TEMP, -1)
+        carStatus.tpmsRearTempC.value =
+            intent.getIntExtra(TpmsService.EXTRA_REAR_TEMP, -1)
+        carStatus.tpmsFrontBatteryPct.value =
+            intent.getIntExtra(TpmsService.EXTRA_FRONT_BATTERY, -1)
+        carStatus.tpmsRearBatteryPct.value =
+            intent.getIntExtra(TpmsService.EXTRA_REAR_BATTERY, -1)
+        carStatus.tpmsUnitLabel.value =
+            intent.getStringExtra(TpmsService.EXTRA_UNIT) ?: SettingPreference.getTpmsUnit(this).label
+        carStatus.tpmsConnection.value =
+            intent.getStringExtra(TpmsService.EXTRA_CONNECTION) ?: "DISCONNECTED"
+        carStatus.tpmsStatusMessage.value =
+            intent.getStringExtra(TpmsService.EXTRA_STATUS).orEmpty()
+    }
 
+    private fun loadTpmsSettingsIntoCarStatus() {
+        carStatus.tpmsEnabled.value = SettingPreference.isTpmsEnabled(this)
+        carStatus.tpmsUnitLabel.value = SettingPreference.getTpmsUnit(this).label
+        // 부팅 직후·폴링 전에도 마지막 조회값을 표시
+        carStatus.tpmsFrontPressureRaw.value =
+            SettingPreference.getTpmsLastFrontPressure(this)
+        carStatus.tpmsRearPressureRaw.value =
+            SettingPreference.getTpmsLastRearPressure(this)
+        carStatus.tpmsFrontTempC.value =
+            SettingPreference.getTpmsLastFrontTemp(this)
+        carStatus.tpmsRearTempC.value =
+            SettingPreference.getTpmsLastRearTemp(this)
+        carStatus.tpmsFrontBatteryPct.value =
+            SettingPreference.getTpmsLastFrontBattery(this)
+        carStatus.tpmsRearBatteryPct.value =
+            SettingPreference.getTpmsLastRearBattery(this)
     }
 
     var bleService: BleService? = null
@@ -171,11 +218,13 @@ class MainActivity : ComponentActivity() {
         super.onResume()
 
         registerBleReceiver()
+        // TPMS Settings Save 후 복귀 시 저장된 설정으로 서비스 기동
+        startTpmsIfEnabled()
 
         if (!checkOverlayPermission()) {
             Toast.makeText(
                 this,
-                "오버레이 권한이 필요합니다. 설정에서 권한을 허용해주세요.",
+                "Overlay permission is required. Allow it in Settings.",
                 Toast.LENGTH_LONG
             ).show()
         } else {
@@ -195,23 +244,12 @@ class MainActivity : ComponentActivity() {
             checkAndRequestPermissions()
 
             syncBtConnectionStatusFromService()
-//                Toast.makeText(
-//                    this,
-//                    "블루투스 장치가 선택되지 않았습니다. 설정에서 장치를 선택해주세요.",
-//                    Toast.LENGTH_LONG
-//                ).show()
-//            }
         }
-//        else {
-//            // 선택된 BLE 장치 정보로 서비스 시작
-//            bleService?.connectToDevice()
-//        }
     }
 
     override fun onPause() {
         super.onPause()
         unregisterBleReceiver()
-        bleService?.showOverlay()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -230,6 +268,9 @@ class MainActivity : ComponentActivity() {
         // 화면 꺼짐 방지
         window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
+        SettingPreference.restoreIgnitionTrip(this, carStatus)
+        loadTpmsSettingsIntoCarStatus()
+
         val firstBoot = intent.getBooleanExtra("firstBoot", false)
 
 
@@ -240,9 +281,6 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     MainScreen(
-                        onPermissionsGranted = {
-                            startServices()
-                        },
                         onAndroidAutoClick = {
                             startHeadUnit()
                         },
@@ -255,6 +293,10 @@ class MainActivity : ComponentActivity() {
                             val launcherIntent = Intent(this, LauncherActivity::class.java)
                             startActivity(launcherIntent)
                         },
+                        onTpmsClick = {
+                            startActivity(Intent(this, TpmsSettingActivity::class.java))
+                        },
+                        onEngineClick = { playLinCapture() },
                         context = this,
                         carStatus = carStatus,
                         firstBoot = firstBoot
@@ -264,13 +306,6 @@ class MainActivity : ComponentActivity() {
         }
 
         startServices()
-
-
-        // 접근성 서비스 활성화 체크 및 설정 화면 이동
-//        if (!isAccessibilityServiceEnabled(this, VirtualKeyService::class.java)) {
-//            Toast.makeText(this, "앱의 접근성 서비스를 활성화 해주세요.", Toast.LENGTH_LONG).show()
-//            launchAccessibilitySettings(this)
-//        }
     }
 
     private fun startHeadUnit()
@@ -328,40 +363,115 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun startServices() {
-
         val bleServiceIntent = Intent(this, BleService::class.java)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             startForegroundService(bleServiceIntent)
         } else {
             startService(bleServiceIntent)
         }
+        startTpmsIfEnabled()
     }
 
-    private fun isAccessibilityServiceEnabled(
-        context: Context,
-        service: Class<out AccessibilityService>
-    ): Boolean {
-        val expectedComponentName = ComponentName(context, service)
-        val enabledServicesSetting = Settings.Secure.getString(
-            context.contentResolver,
-            Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
-        ) ?: return false
+    private fun startTpmsIfEnabled() {
+        loadTpmsSettingsIntoCarStatus()
+        if (!SettingPreference.isTpmsEnabled(this)) return
+        if (!SettingPreference.hasTpmsSensorsConfigured(this)) return
+        // 부팅 시 1회 조회 + 1시간 주기 (상시 연결 아님)
+        TpmsService.startPolling(this)
+    }
 
-        val colonSplitter = TextUtils.SimpleStringSplitter(':')
-        colonSplitter.setString(enabledServicesSetting)
-        while (colonSplitter.hasNext()) {
-            val componentName = colonSplitter.next()
-            if (ComponentName.unflattenFromString(componentName) == expectedComponentName) {
-                return true
+    private var linCaptureJob: Job? = null
+    private var linCaptureGeneration = 0
+
+    private fun playLinCapture() {
+        if (!SettingPreference.isLinTestEnabled(this)) return
+        val generation = ++linCaptureGeneration
+        linCaptureJob?.cancel()
+        linCaptureJob = lifecycleScope.launch(Dispatchers.IO) {
+            val lines = resources.openRawResource(R.raw.lin_capture)
+                .bufferedReader()
+                .readLines()
+            withContext(Dispatchers.Main) {
+                carStatus.linCapturePlaying.value = true
+            }
+            try {
+                var previousTimestamp: Long? = null
+                var applied = false
+                for ((index, line) in lines.withIndex()) {
+                    if (!isActive || generation != linCaptureGeneration) break
+                    val sample = parseLinCaptureLine(line) ?: continue
+                    if (applied) {
+                        val wait = sample.timestampMillis?.let { timestamp ->
+                            previousTimestamp?.let { previous ->
+                                (timestamp - previous).coerceIn(0L, 1_000L)
+                            }
+                        } ?: 10L
+                        if (wait > 0L) delay(wait)
+                    }
+                    previousTimestamp = sample.timestampMillis
+                    applied = true
+                    val lineNumber = index + 1
+                    withContext(Dispatchers.Main) {
+                        carStatus.linCaptureLine.value = lineNumber
+                        LinFrame.apply(sample.frame, carStatus)
+                        SettingPreference.updateIgnitionTrip(this@MainActivity, carStatus)
+                    }
+                }
+            } finally {
+                withContext(NonCancellable + Dispatchers.Main) {
+                    if (generation == linCaptureGeneration) {
+                        carStatus.linCapturePlaying.value = false
+                    }
+                }
             }
         }
-        return false
     }
 
-    private fun launchAccessibilitySettings(context: Context) {
-        val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
-        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-        context.startActivity(intent)
+    private data class LinCaptureSample(
+        val frame: ByteArray,
+        val timestampMillis: Long?
+    )
+
+    private fun parseLinCaptureLine(line: String): LinCaptureSample? {
+        val parts = line.trim().split(Regex("\\s+")).filter { it.isNotEmpty() }
+        if (parts.size < LinFrame.LENGTH) return null
+        var offset = 0
+        var timestampMillis: Long? = null
+        if (parts.size >= LinFrame.LENGTH + 2 &&
+            parts[0].matches(Regex("""\d{4}-\d{2}-\d{2}""")) &&
+            parts[1].contains(':')
+        ) {
+            timestampMillis = parseCaptureTimestamp(parts[0], parts[1]) ?: return null
+            offset = 2
+        }
+        if (parts.size - offset < LinFrame.LENGTH) return null
+        val frame = ByteArray(LinFrame.LENGTH)
+        for (index in 0 until LinFrame.LENGTH) {
+            val token = parts[offset + index].removePrefix("0x").removePrefix("0X")
+            val value = token.toIntOrNull(16) ?: return null
+            frame[index] = value.toByte()
+        }
+        return LinCaptureSample(frame, timestampMillis)
+    }
+
+    private fun parseCaptureTimestamp(date: String, time: String): Long? {
+        return try {
+            LocalDateTime.parse("$date $time", captureTimestampFormatter)
+                .toInstant(ZoneOffset.UTC)
+                .toEpochMilli()
+        } catch (_: DateTimeParseException) {
+            null
+        }
+    }
+
+    private companion object {
+        val captureTimestampFormatter: DateTimeFormatter =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS")
+    }
+
+    override fun onDestroy() {
+        linCaptureJob?.cancel()
+        super.onDestroy()
     }
 
     private fun syncBtConnectionStatusFromService() {

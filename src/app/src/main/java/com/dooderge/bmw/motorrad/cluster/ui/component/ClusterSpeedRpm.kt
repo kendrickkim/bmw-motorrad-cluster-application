@@ -1,23 +1,20 @@
 package com.dooderge.bmw.motorrad.cluster.ui.component
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -26,27 +23,21 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.PlatformTextStyle
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.LineHeightStyle
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.dooderge.bmw.motorrad.cluster.CarStatus
 import com.dooderge.bmw.motorrad.cluster.R
 import com.dooderge.bmw.motorrad.cluster.ui.screens.fanShape
-import java.util.Timer
-import java.util.TimerTask
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlin.math.abs
+import kotlin.math.roundToInt
 
 
 @Composable
 fun ClusterSpeedRpm(
 	width: Int,
 	height: Int,
-	scale: Float,
-	carStatus: CarStatus,
-//	modifier: Modifier = Modifier
+	carStatus: CarStatus
 ) {
 
 	val rpmDegreeStart = -134f
@@ -55,33 +46,32 @@ fun ClusterSpeedRpm(
 
 	var rpmInner by remember { mutableFloatStateOf(0f) }
 	var degreeRpmPin by remember { mutableFloatStateOf(rpmDegreeStart) }
-
+	var speedShown by remember { mutableIntStateOf(0) }
 
 	LaunchedEffect(Unit) {
-		val tmrRpmChangeTest = Timer()
-
-		tmrRpmChangeTest.schedule(object : TimerTask() {  // 시간 / 날짜 리프레시 타이머
-			override fun run() {
-				val rpm = carStatus.rpm.value.toFloat()
-//                val rpm = 11000f
-				if (rpmInner != rpm) {
-					val unitDiff = abs(rpmInner - rpm) / 13
-					var _rpm = rpmInner
-					if (rpm > rpmInner) {
-						_rpm = _rpm + unitDiff
-					} else {
-						_rpm = _rpm - unitDiff
-					}
-
-					if (abs(rpm - _rpm) < 10) {
-						_rpm = rpm;
-					}
-					rpmInner = _rpm
-					degreeRpmPin =
-						rpmDegreeStart + (_rpm / rpmMax) * (rpmDegreeEnd - rpmDegreeStart)
-				}
+		var speedValue = 0f
+		var rpmValue = 0f
+		while (isActive) {
+			val speedTarget = carStatus.speed.value.toFloat()
+			if (speedValue != speedTarget) {
+				speedValue += (speedTarget - speedValue) / 10f
+				if (abs(speedTarget - speedValue) < 0.05f) speedValue = speedTarget
 			}
-		}, 0, 20) // 50fps
+			val roundedSpeed = speedValue.roundToInt()
+			if (speedShown != roundedSpeed) speedShown = roundedSpeed
+
+			val rpmTarget = carStatus.rpm.value.toFloat()
+			if (rpmValue != rpmTarget) {
+				val step = abs(rpmValue - rpmTarget) / 13f
+				var next = if (rpmTarget > rpmValue) rpmValue + step else rpmValue - step
+				if (abs(rpmTarget - next) < 10f) next = rpmTarget
+				rpmValue = next
+				rpmInner = next
+				degreeRpmPin =
+					rpmDegreeStart + (next / rpmMax) * (rpmDegreeEnd - rpmDegreeStart)
+			}
+			delay(20) // 50fps
+		}
 	}
 
 
@@ -136,7 +126,7 @@ fun ClusterSpeedRpm(
 							)
 							{
 								ClusterText(
-									text = "${carStatus.speed.value}",
+									text = speedShown.toString(),
 									fontSize = 240f,
 									fontWeight = FontWeight.ExtraBold,
 									color = Color.White

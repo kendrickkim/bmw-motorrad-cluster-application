@@ -2,7 +2,6 @@ package com.dooderge.bmw.motorrad.cluster.ui.screens
 
 import android.content.Context
 import android.content.Intent
-import android.net.wifi.WifiManager
 import android.provider.Settings
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -49,7 +48,6 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.dooderge.bmw.motorrad.cluster.CarStatus
 import com.dooderge.bmw.motorrad.cluster.R
 import com.dooderge.bmw.motorrad.cluster.SettingPreference
@@ -64,20 +62,19 @@ import com.dooderge.bmw.motorrad.cluster.ui.component.sections.SectionCoolantTem
 import com.dooderge.bmw.motorrad.cluster.ui.component.sections.SectionFuelGuage
 import com.dooderge.bmw.motorrad.cluster.ui.component.sections.SectionStatus
 import com.dooderge.bmw.motorrad.cluster.ui.component.sections.SectionTime
+import com.dooderge.bmw.motorrad.cluster.ui.component.sections.SectionTirePressure
 import com.dooderge.bmw.motorrad.cluster.ui.component.sections.SectionVoltage
-import com.dooderge.bmw.motorrad.cluster.ui.component.sections.SectionWeather
+// DO NOT DELETE — SectionDirection import (슬롯은 Trip으로 임시 교체, 재사용 예정)
+import com.dooderge.bmw.motorrad.cluster.ui.component.sections.SectionDirection
 import com.dooderge.bmw.motorrad.cluster.ui.component.setDesignedSizeByWidth
 import com.dooderge.bmw.motorrad.cluster.ui.component.setDesginedSizeByHeight
-import com.dooderge.bmw.motorrad.cluster.viewmodel.MainViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import java.util.Timer
-import java.util.TimerTask
-import kotlin.random.Random
-
-
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 data class HeaderInfo(
     var strNetworkInfo: MutableState<String> = mutableStateOf(""),
     var strTimeInfo: MutableState<String> = mutableStateOf(""),
@@ -118,27 +115,22 @@ fun fanShape(targetDegree: Float) = object : Shape {
 
 @Composable
 fun MainScreen(
-    onPermissionsGranted: () -> Unit,
-    viewModel: MainViewModel = viewModel(),
     onAndroidAutoClick: () -> Unit = {},
     onSettingsClick: () -> Unit = {},
     onLauncherClick: () -> Unit = {},
+    onTpmsClick: () -> Unit = {},
+    onEngineClick: () -> Unit = {},
     context: Context,
     carStatus: CarStatus,
     firstBoot : Boolean
 ) {
-
-    var strMutTime by remember { mutableStateOf("00:00:00") }
-    var strMutDate by remember { mutableStateOf("2026-01-01") }
-    var strWifiName by remember { mutableStateOf("Unknown") }
-    var strBtDeviceName by remember { mutableStateOf("NONE") }
 
     var sizeScreen by remember { mutableStateOf(IntSize(1, 1)) }
     var sizeBackgroundImage by remember { mutableStateOf(IntSize(1, 1)) }
     var sizeDisplayBackgroundImage by remember { mutableStateOf(IntSize(1, 1)) }
     var sizeRpmGuageImage by remember { mutableStateOf(IntSize(1, 1)) }
     var sizeDisplayRpmGuageImage by remember { mutableStateOf(IntSize(1, 1)) }
-    var ratioImageAndScreen by remember { mutableFloatStateOf(1f) }
+    // var ratioImageAndScreen by remember { mutableFloatStateOf(1f) }
 
     val scaleImage = remember {
         mutableFloatStateOf(1f)
@@ -146,71 +138,41 @@ fun MainScreen(
 
     val headerInfo = remember { HeaderInfo() }
 
-    if(carStatus.bt_connection_status.value == false)
-    {
-        carStatus.gear.value = -1
-        carStatus.rpm.value = 0
-        carStatus.speed.value = 0
-        carStatus.voltage.value = 0
-        carStatus.coolant_temperature.value = 0
+    val btConnected = carStatus.bt_connection_status.value
+    val linCapturePlaying = carStatus.linCapturePlaying.value
+    LaunchedEffect(btConnected, linCapturePlaying) {
+        if (!btConnected && !linCapturePlaying) {
+            carStatus.gear.value = -1
+            carStatus.rpm.value = 0
+            carStatus.speed.value = 0
+            carStatus.voltage.value = 0
+            carStatus.coolant_temperature.value = 0
+        }
     }
 
-
-    // 리피터 변화시 작성 필요
-//	val headerInfo : HeaderInfo(repeater)
-//	{
-//
-//	}
-
+    val timeFormatter = remember { DateTimeFormatter.ofPattern("HH:mm:ss") }
+    val dateFormatter = remember { DateTimeFormatter.ofPattern("yyyy-MM-dd") }
     LaunchedEffect(Unit) {
-        val timerRefreshDateTime = Timer()
+        // 시간 / 날짜 리프레시
+        while (isActive) {
+            val now = LocalDateTime.now()
+            val time = now.format(timeFormatter)
+            val date = now.format(dateFormatter)
+            if (headerInfo.strTimeInfo.value != time) headerInfo.strTimeInfo.value = time
+            if (headerInfo.strDateInfo.value != date) headerInfo.strDateInfo.value = date
+            val btName = SettingPreference.getDeviceName(context).orEmpty().ifEmpty { "[BT]NONE" }
+            if (headerInfo.strNetworkInfo.value != btName) headerInfo.strNetworkInfo.value = btName
+            delay(500)
+        }
+    }
 
-        timerRefreshDateTime.schedule(
-            object : TimerTask() {  // 시간 / 날짜 리프레시 타이머
-                override fun run() {
-                    strMutTime = java.text.SimpleDateFormat(
-                        "HH:mm:ss",
-                        java.util.Locale.getDefault()
-                    ).format(java.util.Date())
-
-                    strMutDate = java.text.SimpleDateFormat(
-                        "yyyy-MM-dd",
-                        java.util.Locale.getDefault()
-                    ).format(java.util.Date())
-
-                    val wifiManager = context.getSystemService(Context.WIFI_SERVICE) as WifiManager
-                    val wifiInfo = wifiManager.connectionInfo
-                    strWifiName = wifiInfo.ssid
-                    strWifiName = strWifiName.replace("\"", "")
-
-                    val btDeviceName: String? = SettingPreference.getDeviceName(context)
-                    if (btDeviceName == null || btDeviceName.isEmpty()) btDeviceName == "[W]NONE"
-                    strBtDeviceName = btDeviceName.toString()
-                    if (strBtDeviceName == null || strBtDeviceName.isEmpty() || strBtDeviceName == "null") strBtDeviceName =
-                        "[BT]NONE"
-
-                    headerInfo.strTimeInfo.value = strMutTime
-                    headerInfo.strDateInfo.value = strMutDate
-                    headerInfo.strNetworkInfo.value = strWifiName + "\n" + strBtDeviceName
-
-
-                }
-            }, 0, 100
-        )
-//        var tmrChangeRpm = Timer()
-//        tmrChangeRpm.schedule(object : TimerTask() {
-//            override fun run() {
-//                carStatus.rpm.value = Random.nextInt(0, 14000)
-//            }
-//        }, 0, 100)
-
-
-        if(firstBoot) {
+    LaunchedEffect(firstBoot) {
+        if (firstBoot) {
             delay(500)
             carStatus.rpm.value = 14000
             delay(2000)
         }
-		carStatus.rpm.value = 0
+        carStatus.rpm.value = 0
     }
 
     LaunchedEffect(sizeScreen)
@@ -244,14 +206,12 @@ fun MainScreen(
             val ratioBackgroundImage =
                 sizeBackgroundImage.width.toFloat() / sizeBackgroundImage.height.toFloat()
 
-            var ratioImageSize = 1f
-            if (ratioScreen < ratioBackgroundImage) {
-                ratioImageSize = sizeScreen.width.toFloat() / sizeBackgroundImage.width.toFloat()
+            val ratioImageSize = if (ratioScreen < ratioBackgroundImage) {
                 setDesignedSizeByWidth(sizeScreen.width.toFloat())
-
+                sizeScreen.width.toFloat() / sizeBackgroundImage.width.toFloat()
             } else {
-                ratioImageSize = sizeScreen.height.toFloat() / sizeBackgroundImage.height.toFloat()
                 setDesginedSizeByHeight(sizeScreen.height.toFloat())
+                sizeScreen.height.toFloat() / sizeBackgroundImage.height.toFloat()
             }
 
             sizeDisplayBackgroundImage =
@@ -376,8 +336,7 @@ fun MainScreen(
                         ClusterSpeedRpm(
                             width = sizeDisplayRpmGuageImage.width,
                             height = sizeDisplayRpmGuageImage.height,
-                            carStatus = carStatus,
-                            scale = scaleImage.floatValue
+                            carStatus = carStatus
                         )
                     }
 
@@ -430,12 +389,13 @@ fun MainScreen(
                                 PaddingValues(start = left, top = top1),
                             ),
                             SectionInfo(
-                                "Time",
+                                "Range",
                                 PaddingValues(end = right1, top = top1),
                                 Alignment.TopEnd
                             ),
+                            // 구 Direction 슬롯 → Trip 표시 (Direction UI는 삭제하지 말 것)
                             SectionInfo(
-                                "Fuel Guage",
+                                "Trip",
                                 PaddingValues(end = right2, top = top1),
                                 Alignment.TopEnd
                             ),
@@ -445,8 +405,9 @@ fun MainScreen(
                                 PaddingValues(start = left, top = top2),
                                 Alignment.TopStart
                             ),
+                            // 구 Fuel Guage 슬롯 → Tire Pressure 표시
                             SectionInfo(
-                                "Weather",
+                                "Tire Pressure",
                                 PaddingValues(end = right1, top = top2),
                                 Alignment.TopEnd
                             ),
@@ -458,7 +419,7 @@ fun MainScreen(
                                 Alignment.TopStart
                             ),
                             SectionInfo(
-                                "Temp.",
+                                "Eng Temp.",
                                 PaddingValues(start = left1, top = top3),
                                 Alignment.TopStart
                             ),
@@ -468,24 +429,10 @@ fun MainScreen(
                                 PaddingValues(end = right1, top = top3),
                                 Alignment.TopEnd
                             ),
-//
-//                            SectionInfo(
-//                                "Time",
-//                                SesionPadding(0, 202, 0, 5),
-//                                Alignment.TopEnd
-//                            ),
 
                         )
 
                         status.forEach { s ->
-
-//                            val newPadding = PaddingValues(
-//                                s.padding.calculateStartPadding(LayoutDirection.Ltr) * scaleImage.value,
-//                                s.padding.calculateTopPadding() * scaleImage.value,
-//                                s.padding.calculateEndPadding(LayoutDirection.Ltr) * scaleImage.value,
-//                                s.padding.calculateBottomPadding() * scaleImage.value,
-//                            )
-
                             SectionText(
                                 text = s.text,
                                 padding = s.padding,
@@ -514,7 +461,8 @@ fun MainScreen(
                                 modifier = Modifier
                                     .padding(start = 30.designedDp(), top = 524.designedDp())
                                     .size(554.designedDp(), 161.designedDp()),
-                                carStatus = carStatus
+                                carStatus = carStatus,
+                                onEngineClick = onEngineClick
                             )
 
                             SectionVoltage(
@@ -537,21 +485,40 @@ fun MainScreen(
 
                             SectionTime(
                                 modifier = Modifier
-                                    .padding(end = 28.designedDp(), top = 232.designedDp())
-                                    .size(316.designedDp(), 161.designedDp()),
-                                carStatus = carStatus,
-                                alignment = Alignment.TopEnd
-                            )
-
-                            SectionFuelGuage(
-                                modifier = Modifier
                                     .padding(end = 433.designedDp(), top = 232.designedDp())
                                     .size(226.designedDp(), 161.designedDp()),
                                 carStatus = carStatus,
                                 alignment = Alignment.TopEnd
                             )
 
-                            SectionWeather(
+                            /*
+                             * =====================================================================
+                             * DO NOT DELETE — SectionDirection (나침반/헤딩)
+                             * 다른 에이전트: 아래 블록을 제거하지 말 것. 슬롯만 Trip으로 임시 교체.
+                             * 파일: ui/component/sections/SectionDirection.kt 도 유지.
+                             * =====================================================================
+                             *
+                             * SectionDirection(
+                             *     modifier = Modifier
+                             *         .padding(end = 433.designedDp(), top = 232.designedDp())
+                             *         .size(226.designedDp(), 161.designedDp()),
+                             *     carStatus = carStatus,
+                             *     alignment = Alignment.TopEnd
+                             * )
+                             */
+
+                            // 구 Time 슬롯 → Range
+                            SectionFuelGuage(
+                                modifier = Modifier
+                                    .padding(end = 28.designedDp(), top = 232.designedDp())
+                                    .size(316.designedDp(), 161.designedDp()),
+                                carStatus = carStatus,
+                                alignment = Alignment.TopEnd,
+                                compact = true
+                            )
+
+                            // 구 Fuel Guage 슬롯 → Tire Pressure (앞/뒤 압력·온도)
+                            SectionTirePressure(
                                 modifier = Modifier
                                     .padding(end = 28.designedDp(), top = 524.designedDp())
                                     .size(554.designedDp(), 150.designedDp()),
@@ -562,16 +529,15 @@ fun MainScreen(
                             SectionApps(
                                 modifier = Modifier
                                     .padding(end = 30.designedDp(), top = 822.designedDp())
-                                    .size(600.designedDp(), 150.designedDp()),
+                                    .size(640.designedDp(), 150.designedDp()),
                                 carStatus = carStatus,
                                 alignment = Alignment.TopEnd,
                                 onApplicationEvent = {
-                                    if (it == "setting") {
-                                        onSettingsClick()
-                                    } else if (it == "android_auto") {
-                                        onAndroidAutoClick()
-                                    } else if (it == "drawer") {
-                                        onLauncherClick()
+                                    when (it) {
+                                        "setting" -> onSettingsClick()
+                                        "android_auto" -> onAndroidAutoClick()
+                                        "drawer" -> onLauncherClick()
+                                        "tpms" -> onTpmsClick()
                                     }
                                 }
                             )
@@ -582,145 +548,14 @@ fun MainScreen(
                     }
 
 
-//              Text(
-//                text = "       ${wifi_name} / ${strMutBtDeviceName.value}",
-//                fontSize = 15.sp,
-//                fontWeight = FontWeight.Bold,
-//              )
-//              Box(
-//                modifier = Modifier.fillMaxSize(),
-//                contentAlignment = Alignment.Center
-//              )
-//              {
-//                Text(
-//                  text = "${strMutTime.value} ",
-//                  fontSize = 28.sp,
-//                  fontWeight = FontWeight.ExtraBold,
-//                  fontFamily = FontFamily(Font(R.font.robot_mono))
-//                )
-//              }
-//            }
-//
-//
-//            Row(
-//              modifier = Modifier
-//                .fillMaxSize()
-//                .background(Color.Black)
-//                .padding(8.dp)
-//            ) {
-//              // 좌측 버튼 영역
-//              Column(
-//                modifier = Modifier
-//                  .fillMaxHeight()
-//                  .width(150.dp),
-//                verticalArrangement = Arrangement.SpaceBetween,
-//                horizontalAlignment = Alignment.CenterHorizontally
-//              ) {
-//
-//
-//                Spacer(modifier = Modifier.height(8.dp))
-//                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-//                  Box(
-//                    modifier = Modifier
-//                      .size(128.dp, 128.dp)
-//                      .clip(RoundedCornerShape(15.dp))
-//                      .background(Color.DarkGray)
-//                      .clickable {
-//                        onAndroidAutoClick()
-//                      }
-//
-//                  )
-//                  {
-//                    Image(
-//                      contentDescription = "Android auto",
-//                      painter = painterResource(id = R.drawable.icon_android_auto),
-//                      modifier = Modifier
-//                        .fillMaxSize()
-//                        .padding(20.dp),
-//                      contentScale = ContentScale.Fit
-//                    )
-//                  }
-////                        Spacer(modifier = Modifier.height(16.dp))
-////                        Box(
-////                            modifier = Modifier
-////                                .size(128.dp, 128.dp)
-////                                .clip(RoundedCornerShape(15.dp))
-////                                .background(Color.DarkGray)
-////                                .clickable {
-////                                    onLauncherClick()
-////                                }
-////
-////                        )
-////                        {
-////                            Image(
-////                                contentDescription = "Apps",
-////                                painter = painterResource(id = R.drawable.ic_main),
-////                                modifier = Modifier
-////                                    .fillMaxSize()
-////                                    .padding(20.dp),
-////                                contentScale = ContentScale.Fit
-////                            )
-////                        }
-//                }
-//                Spacer(modifier = Modifier.height(16.dp))
-//                ComponentGearIndicator(carStatus.gear.value, onLongClick = {
-//                  CoroutineScope(Dispatchers.Main).launch {
-//                    val wifiSettingsIntent =
-//                      Intent(android.provider.Settings.ACTION_WIFI_SETTINGS)
-//                    wifiSettingsIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-//                    context.startActivity(wifiSettingsIntent)
-//
-//                  }
-//                })
-//                Spacer(modifier = Modifier.height(8.dp))
-//              }
-//              Spacer(modifier = Modifier.width(16.dp))
-//              Box(
-//                modifier = Modifier
-//                  .fillMaxSize()
-//                  .padding(start = 8.dp, end = 8.dp, bottom = 8.dp, top = 0.dp),
-//                contentAlignment = Alignment.BottomCenter
-//              ) {
-//                ComponentCluster(context = context, carStatus = carStatus)
-//              }
-//            }
                 }
             }
         }
-
-//		Box(
-//			modifier = Modifier.fillMaxSize(),
-//			contentAlignment = Alignment.BottomEnd
-//		)
-//		{
-//			Box(
-//				modifier = Modifier
-//					.size(60.dp, 60.dp)
-//					.padding(10.dp)
-//					.pointerInput(Unit) {
-//						detectTapGestures(
-//							onPress = {
-//								onSettingsClick()
-//							}
-//						)
-//					})
-//			{
-//				Image(
-//					modifier = Modifier.fillMaxSize(),
-//					painter = painterResource(
-//						id = R.drawable.icon_setting
-//					),
-//					contentDescription = "icon_setting",
-//
-//					)
-//			}
-//		}
     }
 }
 
 @Composable
 fun HeaderSection(
-    modifier: Modifier = Modifier,
     carStatus: CarStatus,
     headerInfo: HeaderInfo
 ) {
@@ -735,7 +570,15 @@ fun HeaderSection(
             contentAlignment = Alignment.CenterStart
         )
         {
-            ClusterText(text = headerInfo.strNetworkInfo.value, 40f, FontWeight.ExtraBold)
+            ClusterText(
+                text = if (carStatus.linCapturePlaying.value) {
+                    "Simulation : ${carStatus.linCaptureLine.value}"
+                } else {
+                    headerInfo.strNetworkInfo.value
+                },
+                60f,
+                FontWeight.ExtraBold
+            )
         }
 
 

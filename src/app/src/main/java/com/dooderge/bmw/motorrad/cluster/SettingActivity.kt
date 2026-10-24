@@ -1,20 +1,22 @@
 package com.dooderge.bmw.motorrad.cluster
 
-import android.R
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.os.Build
 import android.os.Bundle
 import android.view.View
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -24,16 +26,35 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.dooderge.bmw.motorrad.cluster.tpms.TpmsSettingActivity
+
+private val SettingsColorScheme = darkColorScheme(
+    primary = Color(0xFF4376A1),
+    onPrimary = Color.White,
+    primaryContainer = Color(0xFF4376A1),
+    onPrimaryContainer = Color.White,
+    secondary = Color(0xFF4376A1),
+    onSecondary = Color.White,
+    secondaryContainer = Color(0xFF2C4F6B),
+    tertiary = Color(0xFF4376A1),
+    background = Color.Black,
+    surface = Color.Black,
+    onBackground = Color.White,
+    onSurface = Color.White,
+    outline = Color(0xFF4376A1)
+)
 
 class SettingActivity : ComponentActivity() {
+    private val showSpeedGearOverlay = mutableStateOf(false)
+
     @SuppressLint("MissingPermission")
 
     fun getDeviceName(BleDevice: BluetoothDevice): String {
-        return BleDevice.name ?: ("이름없음-" + " ${BleDevice.address}")
+        return BleDevice.name ?: ("Unnamed-" + " ${BleDevice.address}")
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -50,14 +71,39 @@ class SettingActivity : ComponentActivity() {
             val pairedDevices = remember {
                 bluetoothAdapter?.bondedDevices?.toList() ?: emptyList()
             }
-            var strSpeedFactor by remember {
-                mutableStateOf(
-                    SettingPreference.getWheelRpmToSpeedFactor(
-                        this
-                    ).toString()
-                )
+            var linTestEnabled by remember {
+                mutableStateOf(SettingPreference.isLinTestEnabled(this))
+            }
+            var linLogging by remember {
+                mutableStateOf(SettingPreference.isLinLogging(this))
             }
 
+            DisposableEffect(Unit) {
+                val receiver = object : BroadcastReceiver() {
+                    override fun onReceive(context: Context?, intent: Intent?) {
+                        linLogging = intent?.getBooleanExtra(
+                            BleService.EXTRA_LIN_LOGGING,
+                            false
+                        ) == true
+                    }
+                }
+                val filter = IntentFilter(BleService.ACTION_LIN_LOG_STATE)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
+                } else {
+                    @Suppress("DEPRECATION")
+                    registerReceiver(receiver, filter)
+                }
+                onDispose { unregisterReceiver(receiver) }
+            }
+            // Speed Factor UI 비활성 — 필요 시 복원
+            // var strSpeedFactor by remember {
+            //     mutableStateOf(
+            //         SettingPreference.getWheelRpmToSpeedFactor(
+            //             this
+            //         ).toString()
+            //     )
+            // }
 
             LaunchedEffect(Unit) {
                 // 초기 선택된 장치 이름 설정
@@ -65,7 +111,7 @@ class SettingActivity : ComponentActivity() {
                     selectedDeviceName = savedDeviceName
                     selectedDeviceAddress = SettingPreference.getAddress(this@SettingActivity) ?: ""
                 } else {
-                    selectedDeviceName = "선택된 장치 없음"
+                    selectedDeviceName = "No device selected"
                 }
             }
 
@@ -75,206 +121,243 @@ class SettingActivity : ComponentActivity() {
                     fontScale = 1f
                 )
             ) {
-
+                MaterialTheme(colorScheme = SettingsColorScheme) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = Color.Black
                 ) {
                     Column(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(8.dp),
-                        horizontalAlignment = Alignment.Start
+                            .fillMaxSize()
+                            .padding(20.dp)
                     ) {
                         Text(
                             text = "Settings",
-                            fontSize = 20.sp,
+                            fontSize = 22.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color.White,
-                            modifier = Modifier
-                                .padding(start = 8.dp, top = 8.dp, bottom = 8.dp)
-
+                            color = Color.White
                         )
                         Row(
                             modifier = Modifier
-                                .padding(start = 8.dp, end = 8.dp),
-                            verticalAlignment = Alignment.Top
+                                .weight(1f)
+                                .fillMaxWidth()
+                                .padding(top = 12.dp),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
                             Column(
-                                modifier = Modifier
-                                    .weight(0.8f)
-                                    .padding(end = 8.dp)
+                                modifier = Modifier.weight(1f),
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
-                                Row(
-                                    modifier = Modifier
-                                        .height(80.dp)
-                                        .padding(top = 10.dp, bottom = 10.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-
-                                )
-                                {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    SettingLabel("Device")
                                     Box(
                                         modifier = Modifier
-                                            .weight(0.2f),
+                                            .weight(1f)
+                                            .height(56.dp)
+                                            .border(2.dp, Color.Gray)
+                                            .padding(horizontal = 12.dp),
                                         contentAlignment = Alignment.CenterStart
-                                    )
-                                    {
-                                        Text(
-                                            "Selected\nDevice",
-                                            fontSize = 20.sp,
-                                            fontWeight = FontWeight.ExtraBold,
-                                            color = Color.White,
-                                            textAlign = TextAlign.Center,
-                                            modifier = Modifier
-                                                .fillMaxSize()
-                                                .padding(end = 8.dp)
-                                        )
-                                    }
-                                    Box(
-                                        modifier = Modifier
-                                            .weight(0.6f)
-                                            .fillMaxHeight()
-                                            .border(2.dp, Color.Gray),
-
-                                        contentAlignment = Alignment.Center
                                     ) {
                                         Text(
-                                            text = if (selectedDeviceName.isNotEmpty()) selectedDeviceName else "선택된 장치 없음",
-                                            fontSize = 23.sp,
+                                            text = selectedDeviceName.ifEmpty { "No device selected" },
+                                            fontSize = 20.sp,
                                             color = Color.White,
-                                            fontWeight = FontWeight.Medium
+                                            fontWeight = FontWeight.Medium,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
                                         )
                                     }
-                                    Spacer(modifier = Modifier.width(16.dp))
+                                    Spacer(modifier = Modifier.width(12.dp))
                                     Button(
-                                        onClick = {
-                                            // 블루투스 장치 검색 결과 수신
-                                            showDialog = true
-
-                                        },
-                                        modifier = Modifier
-                                            .weight(0.2f)
-                                            .fillMaxHeight(),
+                                        onClick = { showDialog = true },
+                                        modifier = Modifier.height(56.dp),
+                                        shape = RoundedCornerShape(10.dp),
                                         colors = ButtonDefaults.buttonColors(
                                             containerColor = Color.White,
                                             contentColor = Color.Black
-                                        ),
-                                        border = BorderStroke(1.dp, Color.Gray)
+                                        )
                                     ) {
                                         Text(
-                                            text = "선택",
-                                            fontSize = 20.sp,
-                                            fontWeight = FontWeight.Bold, color = Color.Black
+                                            text = "Select",
+                                            fontSize = 18.sp,
+                                            fontWeight = FontWeight.Bold
                                         )
                                     }
                                 }
-                                Row(
-                                    modifier = Modifier
-                                        .height(80.dp)
-                                        .padding(top = 10.dp, bottom = 10.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.Start
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .weight(0.2f),
-                                        contentAlignment = Alignment.CenterStart
+                                // Speed Factor 항목 제거 (주석 유지)
+                                // Row(verticalAlignment = Alignment.CenterVertically) {
+                                //     SettingLabel("Speed Factor")
+                                //     TextField(
+                                //         value = strSpeedFactor,
+                                //         onValueChange = { strSpeedFactor = it },
+                                //         singleLine = true,
+                                //         modifier = Modifier.weight(1f),
+                                //         colors = TextFieldDefaults.colors(
+                                //             focusedContainerColor = Color.Black,
+                                //             unfocusedContainerColor = Color.Black,
+                                //             focusedIndicatorColor = Color(0xFF4376A1),
+                                //             unfocusedIndicatorColor = Color(0xFF666666),
+                                //             cursorColor = Color(0xFF4376A1),
+                                //             focusedTextColor = Color.White,
+                                //             unfocusedTextColor = Color.White
+                                //         ),
+                                //         textStyle = TextStyle(
+                                //             fontSize = 20.sp,
+                                //             color = Color.White,
+                                //             fontWeight = FontWeight.Medium
+                                //         )
+                                //     )
+                                // }
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        text = "LIN Test",
+                                        fontSize = 18.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = Color.White,
+                                        modifier = Modifier.weight(1f)
                                     )
-                                    {
-                                        Text(
-                                            "Speed\nFactor",
-                                            fontSize = 20.sp,
-                                            fontWeight = FontWeight.ExtraBold,
-                                            color = Color.White,
-                                            textAlign = TextAlign.Center,
-                                            modifier = Modifier
-                                                .fillMaxSize()
-                                                .padding(end = 8.dp)
+                                    Switch(
+                                        checked = linTestEnabled,
+                                        onCheckedChange = {
+                                            linTestEnabled = it
+                                            SettingPreference.setLinTestEnabled(
+                                                this@SettingActivity,
+                                                it
+                                            )
+                                        },
+                                        colors = SwitchDefaults.colors(
+                                            checkedThumbColor = Color.White,
+                                            checkedTrackColor = Color(0xFF4376A1),
+                                            checkedBorderColor = Color(0xFF4376A1),
+                                            uncheckedThumbColor = Color(0xFFAAAAAA),
+                                            uncheckedTrackColor = Color(0xFF333333),
+                                            uncheckedBorderColor = Color(0xFF666666)
                                         )
-                                    }
-                                    Box(
-                                        modifier = Modifier
-                                            .weight(0.3f)
-                                            .border(2.dp, Color.Gray),
-                                        contentAlignment = Alignment.CenterStart
+                                    )
+                                }
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        text = "Speed / Gear Overlay",
+                                        fontSize = 18.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = Color.White,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    Switch(
+                                        checked = showSpeedGearOverlay.value,
+                                        onCheckedChange = { checked ->
+                                            showSpeedGearOverlay.value = checked
+                                            BleService.setOverlayPreview(checked)
+                                        },
+                                        colors = SwitchDefaults.colors(
+                                            checkedThumbColor = Color.White,
+                                            checkedTrackColor = Color(0xFF4376A1),
+                                            checkedBorderColor = Color(0xFF4376A1),
+                                            uncheckedThumbColor = Color(0xFFAAAAAA),
+                                            uncheckedTrackColor = Color(0xFF333333),
+                                            uncheckedBorderColor = Color(0xFF666666)
+                                        )
+                                    )
+                                }
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    SettingLabel("Data Log")
+                                    Button(
+                                        onClick = { requestLinLog(!linLogging) },
+                                        modifier = Modifier.height(56.dp),
+                                        shape = RoundedCornerShape(10.dp),
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = Color.White,
+                                            contentColor = Color.Black
+                                        )
                                     ) {
-                                        TextField(
-                                            value = strSpeedFactor.toString(),
-                                            colors = TextFieldDefaults.colors(
-                                                focusedContainerColor = Color.Black,
-                                                unfocusedContainerColor = Color.Black
-                                            ),
-                                            textStyle = TextStyle(
-                                                fontSize = 23.sp,
-                                                color = Color.White,
-                                                fontWeight = FontWeight.Medium,
-                                                textAlign = TextAlign.Center,
-                                            ),
-                                            onValueChange = {
-                                                strSpeedFactor = it
-                                            },
+                                        Text(
+                                            text = if (linLogging) "Stop logging" else "Start logging",
+                                            fontSize = 18.sp,
+                                            fontWeight = FontWeight.Bold
                                         )
                                     }
-                                    Spacer(modifier = Modifier.width(16.dp))
-                                    Box(modifier = Modifier.weight(0.5f))
-
+                                }
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    SettingLabel("TPMS")
+                                    Button(
+                                        onClick = {
+                                            startActivity(
+                                                Intent(
+                                                    this@SettingActivity,
+                                                    TpmsSettingActivity::class.java
+                                                )
+                                            )
+                                        },
+                                        modifier = Modifier.height(56.dp),
+                                        shape = RoundedCornerShape(10.dp),
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = Color.White,
+                                            contentColor = Color.Black
+                                        )
+                                    ) {
+                                        Text(
+                                            text = "Settings",
+                                            fontSize = 18.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
                                 }
                             }
-                            Column(Modifier.weight(0.2f))
-                            {
-                                Box(Modifier.weight(1f))
-                                {
-                                    SameWeightButton("Save", onClick = {
+                            Column(
+                                modifier = Modifier
+                                    .weight(0.22f)
+                                    .fillMaxHeight(),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                SettingActionButton(
+                                    label = "Save",
+                                    modifier = Modifier.weight(1f),
+                                    onClick = {
                                         SettingPreference.saveSettings(
                                             context = this@SettingActivity,
                                             deviceName = selectedDeviceName,
                                             address = selectedDeviceAddress
                                         )
-                                        SettingPreference.setWheelRpmToSpeedFactor(
-                                            context = this@SettingActivity,
-                                            factor = strSpeedFactor.toString().toFloatOrNull()
-                                                ?: 1.0f
-                                        )
-
-                                        BleService.WHEEL_RPM_TO_SPEED =
-                                            SettingPreference.getWheelRpmToSpeedFactor(this@SettingActivity)
-                                        // close activity
+                                        // SettingPreference.setWheelRpmToSpeedFactor(
+                                        //     context = this@SettingActivity,
+                                        //     factor = strSpeedFactor.toFloatOrNull() ?: 1.0f
+                                        // )
+                                        // BleService.WHEEL_RPM_TO_SPEED =
+                                        //     SettingPreference.getWheelRpmToSpeedFactor(this@SettingActivity)
                                         finish()
-                                    })
-                                }
-                                Box(Modifier.weight(1f))
-                                {
-                                    SameWeightButton("Cancel", onClick = {
-                                        finish()
-                                    })
-                                }
-                                Box(Modifier.weight(1f))
-                                {
-                                    SameWeightButton("Reset", onClick = {
+                                    }
+                                )
+                                SettingActionButton(
+                                    label = "Cancel",
+                                    modifier = Modifier.weight(1f),
+                                    onClick = { finish() }
+                                )
+                                SettingActionButton(
+                                    label = "Reset",
+                                    modifier = Modifier.weight(1f),
+                                    onClick = {
                                         selectedDeviceName = ""
                                         selectedDeviceAddress = ""
-                                        strSpeedFactor =
-                                            SettingPreference.getWheelRpmToSpeedFactor(this@SettingActivity)
-                                                .toString()
-                                    })
-                                }
+                                        // strSpeedFactor =
+                                        //     SettingPreference.getWheelRpmToSpeedFactor(this@SettingActivity)
+                                        //         .toString()
+                                    }
+                                )
                             }
-
                         }
-
                     }
                     if (showDialog) {
                         AlertDialog(
                             onDismissRequest = { showDialog = false },
-                            title = { Text("블루투스 장치 선택") },
+                            title = { Text("Select Bluetooth device") },
                             text = {
                                 Column(
                                     Modifier
                                         .verticalScroll(rememberScrollState())
                                 ) {
-                                    Text("페어링된 BMW-WWC 장치")
+                                    Text("Paired BMW-WWC devices")
                                     if (pairedDevices.isEmpty()) {
-                                        Text("페어링된 블루투스 장치가 없습니다.")
+                                        Text("No paired Bluetooth devices.")
                                     } else {
                                         pairedDevices.forEach { device ->
                                             if (device.name != null && !device.name.isEmpty() && device.name.startsWith(
@@ -291,7 +374,8 @@ class SettingActivity : ComponentActivity() {
                                                     },
                                                     modifier = Modifier
                                                         .fillMaxWidth()
-                                                        .padding(vertical = 2.dp)
+                                                        .padding(vertical = 2.dp),
+                                                    shape = RoundedCornerShape(10.dp)
                                                 ) {
                                                     Text(getDeviceName(device))
                                                 }
@@ -301,54 +385,70 @@ class SettingActivity : ComponentActivity() {
                                 }
                             },
                             confirmButton = {
-                                TextButton(onClick = { showDialog = false }) {
-                                    Text("닫기")
+                                TextButton(
+                                    onClick = { showDialog = false },
+                                    shape = RoundedCornerShape(10.dp)
+                                ) {
+                                    Text("Close")
                                 }
                             }
                         )
                     }
                 }
+                }
             }
         }
     }
 
+    private fun requestLinLog(start: Boolean) {
+        val intent = Intent(this, BleService::class.java).apply {
+            action = if (start) BleService.ACTION_START_LIN_LOG else BleService.ACTION_STOP_LIN_LOG
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(intent)
+        } else {
+            startService(intent)
+        }
+    }
+
     @Composable
-    fun SameWeightButton(label: String, onClick: () -> Unit) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(3.dp)
-                .background(color = Color(0xff333333))
-                .clickable(onClick = {
-                    onClick()
-//                    finish()
-                }),
-            contentAlignment = Alignment.Center
+    private fun SettingLabel(text: String) {
+        Text(
+            text = text,
+            fontSize = 18.sp,
+            fontWeight = FontWeight.ExtraBold,
+            color = Color.White,
+            modifier = Modifier.width(140.dp)
         )
-        {
+    }
+
+    @Composable
+    private fun SettingActionButton(
+        label: String,
+        modifier: Modifier = Modifier,
+        onClick: () -> Unit
+    ) {
+        Button(
+            onClick = onClick,
+            modifier = modifier.fillMaxSize(),
+            shape = RoundedCornerShape(10.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color(0xff333333),
+                contentColor = Color.White
+            )
+        ) {
             Text(
                 text = label,
-                fontSize = 15.sp,
-                color = Color.White,
+                fontSize = 18.sp,
                 fontWeight = FontWeight.ExtraBold
             )
         }
     }
 
-    @Composable
-    fun RoundButton(label: String, onClick: () -> Unit) {
-        Box(
-            modifier = Modifier
-                .padding(8.dp),
-        )
-        {
-            Button(modifier = Modifier.size(width = 150.dp, height = 50.dp), onClick = {
-                onClick()
-            })
-            {
-                Text(label)
-            }
-        }
+    override fun onPause() {
+        super.onPause()
+        showSpeedGearOverlay.value = false
+        BleService.setOverlayPreview(false)
     }
 
     override fun onResume() {
