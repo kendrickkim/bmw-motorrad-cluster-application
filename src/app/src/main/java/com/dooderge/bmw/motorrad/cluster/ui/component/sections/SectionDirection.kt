@@ -35,7 +35,7 @@ import com.dooderge.bmw.motorrad.cluster.ui.component.designedDp
 /**
  * DO NOT DELETE — Direction (나침반/헤딩) 섹션.
  *
- * 클러스터 레이아웃에서 해당 슬롯은 일시적으로 Fuel Guage로 교체됨.
+ * 클러스터 레이아웃에서 해당 슬롯은 일시적으로 Trip으로 교체됨.
  * MainScreen.kt 에서도 호출부가 주석 처리되어 있음. 다른 에이전트 작업 시
  * 이 파일·함수를 삭제하지 말 것. 재사용 예정.
  */

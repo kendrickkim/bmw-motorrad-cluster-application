@@ -16,6 +16,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -48,10 +49,12 @@ private val SettingsColorScheme = darkColorScheme(
 )
 
 class SettingActivity : ComponentActivity() {
+    private val showSpeedGearOverlay = mutableStateOf(false)
+
     @SuppressLint("MissingPermission")
 
     fun getDeviceName(BleDevice: BluetoothDevice): String {
-        return BleDevice.name ?: ("이름없음-" + " ${BleDevice.address}")
+        return BleDevice.name ?: ("Unnamed-" + " ${BleDevice.address}")
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -108,7 +111,7 @@ class SettingActivity : ComponentActivity() {
                     selectedDeviceName = savedDeviceName
                     selectedDeviceAddress = SettingPreference.getAddress(this@SettingActivity) ?: ""
                 } else {
-                    selectedDeviceName = "선택된 장치 없음"
+                    selectedDeviceName = "No device selected"
                 }
             }
 
@@ -156,7 +159,7 @@ class SettingActivity : ComponentActivity() {
                                         contentAlignment = Alignment.CenterStart
                                     ) {
                                         Text(
-                                            text = selectedDeviceName.ifEmpty { "선택된 장치 없음" },
+                                            text = selectedDeviceName.ifEmpty { "No device selected" },
                                             fontSize = 20.sp,
                                             color = Color.White,
                                             fontWeight = FontWeight.Medium,
@@ -168,13 +171,14 @@ class SettingActivity : ComponentActivity() {
                                     Button(
                                         onClick = { showDialog = true },
                                         modifier = Modifier.height(56.dp),
+                                        shape = RoundedCornerShape(10.dp),
                                         colors = ButtonDefaults.buttonColors(
                                             containerColor = Color.White,
                                             contentColor = Color.Black
                                         )
                                     ) {
                                         Text(
-                                            text = "선택",
+                                            text = "Select",
                                             fontSize = 18.sp,
                                             fontWeight = FontWeight.Bold
                                         )
@@ -205,7 +209,13 @@ class SettingActivity : ComponentActivity() {
                                 //     )
                                 // }
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    SettingLabel("LIN Test")
+                                    Text(
+                                        text = "LIN Test",
+                                        fontSize = 18.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = Color.White,
+                                        modifier = Modifier.weight(1f)
+                                    )
                                     Switch(
                                         checked = linTestEnabled,
                                         onCheckedChange = {
@@ -226,17 +236,42 @@ class SettingActivity : ComponentActivity() {
                                     )
                                 }
                                 Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        text = "Speed / Gear Overlay",
+                                        fontSize = 18.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = Color.White,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    Switch(
+                                        checked = showSpeedGearOverlay.value,
+                                        onCheckedChange = { checked ->
+                                            showSpeedGearOverlay.value = checked
+                                            BleService.setOverlayPreview(checked)
+                                        },
+                                        colors = SwitchDefaults.colors(
+                                            checkedThumbColor = Color.White,
+                                            checkedTrackColor = Color(0xFF4376A1),
+                                            checkedBorderColor = Color(0xFF4376A1),
+                                            uncheckedThumbColor = Color(0xFFAAAAAA),
+                                            uncheckedTrackColor = Color(0xFF333333),
+                                            uncheckedBorderColor = Color(0xFF666666)
+                                        )
+                                    )
+                                }
+                                Row(verticalAlignment = Alignment.CenterVertically) {
                                     SettingLabel("Data Log")
                                     Button(
                                         onClick = { requestLinLog(!linLogging) },
                                         modifier = Modifier.height(56.dp),
+                                        shape = RoundedCornerShape(10.dp),
                                         colors = ButtonDefaults.buttonColors(
                                             containerColor = Color.White,
                                             contentColor = Color.Black
                                         )
                                     ) {
                                         Text(
-                                            text = if (linLogging) "로깅 중지" else "로깅 시작",
+                                            text = if (linLogging) "Stop logging" else "Start logging",
                                             fontSize = 18.sp,
                                             fontWeight = FontWeight.Bold
                                         )
@@ -254,13 +289,14 @@ class SettingActivity : ComponentActivity() {
                                             )
                                         },
                                         modifier = Modifier.height(56.dp),
+                                        shape = RoundedCornerShape(10.dp),
                                         colors = ButtonDefaults.buttonColors(
                                             containerColor = Color.White,
                                             contentColor = Color.Black
                                         )
                                     ) {
                                         Text(
-                                            text = "설정",
+                                            text = "Settings",
                                             fontSize = 18.sp,
                                             fontWeight = FontWeight.Bold
                                         )
@@ -313,15 +349,15 @@ class SettingActivity : ComponentActivity() {
                     if (showDialog) {
                         AlertDialog(
                             onDismissRequest = { showDialog = false },
-                            title = { Text("블루투스 장치 선택") },
+                            title = { Text("Select Bluetooth device") },
                             text = {
                                 Column(
                                     Modifier
                                         .verticalScroll(rememberScrollState())
                                 ) {
-                                    Text("페어링된 BMW-WWC 장치")
+                                    Text("Paired BMW-WWC devices")
                                     if (pairedDevices.isEmpty()) {
-                                        Text("페어링된 블루투스 장치가 없습니다.")
+                                        Text("No paired Bluetooth devices.")
                                     } else {
                                         pairedDevices.forEach { device ->
                                             if (device.name != null && !device.name.isEmpty() && device.name.startsWith(
@@ -338,7 +374,8 @@ class SettingActivity : ComponentActivity() {
                                                     },
                                                     modifier = Modifier
                                                         .fillMaxWidth()
-                                                        .padding(vertical = 2.dp)
+                                                        .padding(vertical = 2.dp),
+                                                    shape = RoundedCornerShape(10.dp)
                                                 ) {
                                                     Text(getDeviceName(device))
                                                 }
@@ -348,8 +385,11 @@ class SettingActivity : ComponentActivity() {
                                 }
                             },
                             confirmButton = {
-                                TextButton(onClick = { showDialog = false }) {
-                                    Text("닫기")
+                                TextButton(
+                                    onClick = { showDialog = false },
+                                    shape = RoundedCornerShape(10.dp)
+                                ) {
+                                    Text("Close")
                                 }
                             }
                         )
@@ -391,6 +431,7 @@ class SettingActivity : ComponentActivity() {
         Button(
             onClick = onClick,
             modifier = modifier.fillMaxSize(),
+            shape = RoundedCornerShape(10.dp),
             colors = ButtonDefaults.buttonColors(
                 containerColor = Color(0xff333333),
                 contentColor = Color.White
@@ -402,6 +443,12 @@ class SettingActivity : ComponentActivity() {
                 fontWeight = FontWeight.ExtraBold
             )
         }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        showSpeedGearOverlay.value = false
+        BleService.setOverlayPreview(false)
     }
 
     override fun onResume() {

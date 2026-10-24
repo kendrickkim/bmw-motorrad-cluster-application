@@ -37,7 +37,7 @@ fun SectionVoltage
 			val voltage = carStatus.voltage.value.toFloat()
 			val strVoltage = String.format("%.1f", voltage / 10.0)
 			ClusterText(
-				text = "${strVoltage} V",
+				text = "${strVoltage} v",
 				fontSize = 90f,
 				fontWeight = FontWeight.ExtraBold,
 			)

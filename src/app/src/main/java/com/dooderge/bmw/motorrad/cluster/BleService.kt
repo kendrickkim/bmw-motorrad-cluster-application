@@ -58,11 +58,29 @@ class BleService : Service() {
         const val EXTRA_LIN_LOGGING = "logging"
 
         public var WHEEL_RPM_TO_SPEED = 0.884f
+
+        @Volatile
+        private var instance: BleService? = null
+
+        fun setAppInForeground(inForeground: Boolean) {
+            val service = instance ?: return
+            service.appInForeground = inForeground
+            service.applyOverlayVisibility()
+        }
+
+        /** 설정 화면에서만 켜는 미리보기. 저장하지 않는다. */
+        fun setOverlayPreview(visible: Boolean) {
+            val service = instance ?: return
+            service.overlayPreview = visible
+            service.applyOverlayVisibility()
+        }
     }
 
 
     private var windowManager: WindowManager? = null
     private var overlayView: View? = null
+    private var appInForeground = true
+    private var overlayPreview = false
 
     fun dpToPx(dp: Int): Int {
         return (dp * resources.displayMetrics.density + 0.5f).toInt()
@@ -71,17 +89,18 @@ class BleService : Service() {
     @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
     override fun onCreate() {
         super.onCreate()
+        instance = this
         // Foreground Notification
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
-                CHANNEL_ID, "BLE+Overlay 서비스 채널", NotificationManager.IMPORTANCE_LOW
+                CHANNEL_ID, "BLE and overlay service", NotificationManager.IMPORTANCE_LOW
             )
             val manager = getSystemService(NotificationManager::class.java)
             manager.createNotificationChannel(channel)
         }
         val notification =
-            NotificationCompat.Builder(this, CHANNEL_ID).setContentTitle("클러스터 서비스 동작 중")
-                .setContentText("BLE 통신 및 오버레이 표시").setSmallIcon(R.drawable.ic_launcher_foreground)
+            NotificationCompat.Builder(this, CHANNEL_ID).setContentTitle("Cluster service running")
+                .setContentText("BLE link and overlay").setSmallIcon(R.drawable.ic_launcher_foreground)
                 .build()
         startForeground(NOTIFICATION_ID, notification)
 
@@ -222,13 +241,11 @@ class BleService : Service() {
         })
 
         windowManager?.addView(overlayView, params)
-        hideOverlay()
+        applyOverlayVisibility()
     }
 
     var currentCarStatus = CarStatus()
     var oldCarStatus = CarStatus()
-
-    private fun Byte.u8(): Int = toInt() and 0xFF
 
     private fun applyPackedCarStatus(data: ByteArray) {
         val wheelRpm = data[7].u8() + data[8].u8() * 256
@@ -336,14 +353,17 @@ class BleService : Service() {
         return false;
     }
 
+    private var connectTimer: Timer? = null
+
     @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
     fun connectToDevice() {
-
-        val tmr_connect = Timer()
+        connectTimer?.cancel()
+        val timer = Timer()
+        connectTimer = timer
 
         val _this = this;
 
-        tmr_connect.schedule(object : TimerTask() {
+        timer.schedule(object : TimerTask() {
             @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
             override fun run() {
                 if (connection_status == BluetoothProfile.STATE_CONNECTED ||
@@ -402,6 +422,11 @@ class BleService : Service() {
         overlayView?.visibility = View.VISIBLE
     }
 
+    private fun applyOverlayVisibility() {
+        val show = overlayPreview || !appInForeground
+        overlayView?.visibility = if (show) View.VISIBLE else View.GONE
+    }
+
     fun getConnectionStatus(): Int {
         return connection_status
     }
@@ -420,7 +445,7 @@ class BleService : Service() {
         when (intent?.action) {
             ACTION_START_LIN_LOG -> {
                 if (!linDataLogger.start()) {
-                    toast("로그 파일을 만들지 못했습니다")
+                    toast("Could not create the log file")
                 }
                 broadcastLinLogState()
             }
@@ -450,7 +475,10 @@ class BleService : Service() {
     }
 
     override fun onDestroy() {
+        connectTimer?.cancel()
+        connectTimer = null
         linDataLogger.release()
+        if (instance == this) instance = null
         super.onDestroy()
         if (overlayView != null) windowManager?.removeView(overlayView)
     }

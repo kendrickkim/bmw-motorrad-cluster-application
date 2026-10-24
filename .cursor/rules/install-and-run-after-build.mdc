@@ -1,0 +1,12 @@
+---
+description: 빌드가 끝나면 연결된 기기에 설치하고 앱을 실행한다
+alwaysApply: true
+---
+
+# 빌드 후 설치 및 실행
+
+앱 빌드가 성공하면 연결된 Android 기기에 설치하고 실행한다.
+
+- 디버그 빌드는 `src`에서 `.\gradlew.bat :app:installDebug`로 설치한다.
+- 설치 후 런처 액티비티를 실행한다: `adb shell am start -n com.dooderge.bmw.motorrad.cluster/.SplashActivity`
+- 기기가 없으면 빌드 결과만 알리고, 연결을 요청한다.

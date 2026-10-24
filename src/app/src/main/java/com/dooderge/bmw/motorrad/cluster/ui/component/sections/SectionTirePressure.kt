@@ -18,7 +18,7 @@ import com.dooderge.bmw.motorrad.cluster.ui.component.ClusterText
 import com.dooderge.bmw.motorrad.cluster.ui.component.designedDp
 
 @Composable
-fun SectionTyrePressure(
+fun SectionTirePressure(
     carStatus: CarStatus,
     alignment: Alignment = Alignment.TopStart,
     modifier: Modifier = Modifier

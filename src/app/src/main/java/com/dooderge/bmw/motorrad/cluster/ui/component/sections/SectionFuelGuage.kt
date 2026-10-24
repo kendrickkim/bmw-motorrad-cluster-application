@@ -1,8 +1,8 @@
 package com.dooderge.bmw.motorrad.cluster.ui.component.sections
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -11,7 +11,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import com.dooderge.bmw.motorrad.cluster.CarStatus
 import com.dooderge.bmw.motorrad.cluster.ui.component.ClusterText
-import com.dooderge.bmw.motorrad.cluster.ui.component.designedDp
 
 @Composable
 fun SectionFuelGuage(
@@ -30,13 +29,12 @@ fun SectionFuelGuage(
 		alignment = alignment
 	) {
 		Column(
-			modifier = Modifier
-				.fillMaxSize()
-				.padding(top = 20.designedDp()),
-			horizontalAlignment = Alignment.End
+			modifier = Modifier.fillMaxSize(),
+			horizontalAlignment = Alignment.End,
+			verticalArrangement = Arrangement.Center
 		) {
 			val rangeKm = carStatus.fuelRangeKm.value
-			val gauge = (rangeKm * 100 / 250).coerceIn(0, 100)
+			// val gauge = (rangeKm * 100 / 250).coerceIn(0, 100)
 			if (compact) {
 				// 좁은 Direction 슬롯에서 줄바꿈되면 "Km"이 잘리므로 한 줄·너비 제한 해제
 				Column(
@@ -44,19 +42,20 @@ fun SectionFuelGuage(
 						align = Alignment.End,
 						unbounded = true
 					),
-					horizontalAlignment = Alignment.End
+					horizontalAlignment = Alignment.End,
+					verticalArrangement = Arrangement.Center
 				) {
-					ClusterText(
-						text = "$gauge %",
-						fontSize = lineSize,
-						fontWeight = FontWeight.ExtraBold,
-						color = lineColor,
-						softWrap = false,
-						maxLines = 1
-					)
+					// ClusterText(
+					// 	text = "$gauge %",
+					// 	fontSize = lineSize,
+					// 	fontWeight = FontWeight.ExtraBold,
+					// 	color = lineColor,
+					// 	softWrap = false,
+					// 	maxLines = 1
+					// )
 					ClusterText(
 						text = "$rangeKm Km",
-						fontSize = distanceSize,
+						fontSize = distanceSize * 1.3f,
 						fontWeight = FontWeight.ExtraBold,
 						color = lineColor,
 						softWrap = false,
@@ -64,9 +63,15 @@ fun SectionFuelGuage(
 					)
 				}
 			} else {
+				// ClusterText(
+				// 	text = "$gauge % / $rangeKm Km",
+				// 	fontSize = 135f,
+				// 	fontWeight = FontWeight.ExtraBold,
+				// 	color = lineColor
+				// )
 				ClusterText(
-					text = "$gauge % / $rangeKm Km",
-					fontSize = 135f,
+					text = "$rangeKm Km",
+					fontSize = 135f * 1.5f,
 					fontWeight = FontWeight.ExtraBold,
 					color = lineColor
 				)

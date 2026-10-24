@@ -3,6 +3,7 @@ package com.dooderge.bmw.motorrad.cluster.ui.component.sections
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -62,18 +63,30 @@ fun SectionTime(
 				.padding(top = 20.designedDp()),
 			horizontalAlignment = Alignment.End
 		) {
-			ClusterText(
-				text = "%02d:%02d".format(hours, minutes),
-				fontSize = lineSize,
-				fontWeight = FontWeight.ExtraBold,
-				color = lineColor
-			)
-			ClusterText(
-				text = "$tripKm Km",
-				fontSize = distanceSize,
-				fontWeight = FontWeight.ExtraBold,
-				color = lineColor
-			)
+			Column(
+				modifier = Modifier.wrapContentWidth(
+					align = Alignment.End,
+					unbounded = true
+				),
+				horizontalAlignment = Alignment.End
+			) {
+				ClusterText(
+					text = "%02d:%02d".format(hours, minutes),
+					fontSize = lineSize,
+					fontWeight = FontWeight.ExtraBold,
+					color = lineColor,
+					softWrap = false,
+					maxLines = 1
+				)
+				ClusterText(
+					text = "$tripKm Km",
+					fontSize = distanceSize,
+					fontWeight = FontWeight.ExtraBold,
+					color = lineColor,
+					softWrap = false,
+					maxLines = 1
+				)
+			}
 		}
 	}
 }

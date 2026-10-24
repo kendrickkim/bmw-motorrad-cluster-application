@@ -241,6 +241,6 @@ object LinFrame {
     }
 }
 
-private fun Byte.u8(): Int = toInt() and 0xFF
+internal fun Byte.u8(): Int = toInt() and 0xFF
 
 private fun Int.bit(index: Int): Boolean = ((this ushr index) and 1) == 1

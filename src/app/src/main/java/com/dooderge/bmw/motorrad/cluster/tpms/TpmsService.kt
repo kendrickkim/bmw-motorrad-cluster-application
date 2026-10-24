@@ -114,7 +114,7 @@ class TpmsService : Service() {
     private val stopRefreshRunnable = Runnable {
         if (!settingsUiOpen) {
             scanner?.stopScan()
-            publishStatus("스캔 대기 (다음 주기까지)")
+            publishStatus("Waiting for the next scan")
         }
     }
 
@@ -172,7 +172,7 @@ class TpmsService : Service() {
                 stopPollingSchedule()
                 scanner?.stopScan()
                 SettingPreference.setTpmsEnabled(this, false)
-                publishStatus("TPMS 중지")
+                publishStatus("TPMS stopped")
             }
             ACTION_CONNECT, ACTION_START_POLLING -> {
                 SettingPreference.setTpmsEnabled(this, true)
@@ -207,7 +207,7 @@ class TpmsService : Service() {
         }
         seedFromPrefs()
         applySample(
-            AdvTyreSample(
+            AdvTireSample(
                 sensorId = sample.sensorId,
                 sensorIdHex = sample.sensorIdHex,
                 pressureKpaCents = sample.pressureKpaCents,
@@ -267,7 +267,7 @@ class TpmsService : Service() {
 
     private fun beginRefreshScan(reason: String) {
         if (!SettingPreference.hasTpmsSensorsConfigured(this) && !settingsUiOpen) return
-        publishStatus("TPMS 스캔… ($reason)")
+        publishStatus("Scanning TPMS… ($reason)")
         scanner?.startScan()
         mainHandler.removeCallbacks(stopRefreshRunnable)
         if (!settingsUiOpen) {
@@ -275,7 +275,7 @@ class TpmsService : Service() {
         }
     }
 
-    private fun applySample(sample: AdvTyreSample) {
+    private fun applySample(sample: AdvTireSample) {
         val hasFront = SettingPreference.hasTpmsFrontSensor(this)
         val hasRear = SettingPreference.hasTpmsRearSensor(this)
         val frontId = SettingPreference.getTpmsFrontSensorId(this)
@@ -308,7 +308,7 @@ class TpmsService : Service() {
                     name = sample.brand.name,
                     address = sample.macAddress.ifBlank { latestState.frontDevice.address }
                 ),
-                statusMessage = "Front ${sample.sensorIdHex} 수신"
+                statusMessage = "Front ${sample.sensorIdHex} received"
             )
         }
         if (hasRear && idMatches(rearId, rearHex)) {
@@ -321,7 +321,7 @@ class TpmsService : Service() {
                     name = sample.brand.name,
                     address = sample.macAddress.ifBlank { latestState.rearDevice.address }
                 ),
-                statusMessage = "Rear ${sample.sensorIdHex} 수신"
+                statusMessage = "Rear ${sample.sensorIdHex} received"
             )
         }
 
@@ -331,13 +331,13 @@ class TpmsService : Service() {
             if (slot == TirePosition.FRONT && !hasFront) {
                 latestState = latestState.copy(
                     front = toReading(slot, sample),
-                    statusMessage = "미바인딩 Front 후보 ${sample.sensorIdHex}"
+                    statusMessage = "Unbound front candidate ${sample.sensorIdHex}"
                 )
                 matched = true
             } else if (slot == TirePosition.REAR && !hasRear) {
                 latestState = latestState.copy(
                     rear = toReading(slot, sample),
-                    statusMessage = "미바인딩 Rear 후보 ${sample.sensorIdHex}"
+                    statusMessage = "Unbound rear candidate ${sample.sensorIdHex}"
                 )
                 matched = true
             }
@@ -356,7 +356,7 @@ class TpmsService : Service() {
         }
     }
 
-    private fun toReading(position: TirePosition, sample: AdvTyreSample) = TireReading(
+    private fun toReading(position: TirePosition, sample: AdvTireSample) = TireReading(
         position = position,
         pressureKpaCents = sample.pressureKpaCents,
         temperatureC = sample.temperatureC,
@@ -393,7 +393,7 @@ class TpmsService : Service() {
                 pressureKpaCents = rearP,
                 temperatureC = rearT
             ),
-            statusMessage = if (frontP >= 0 || rearP >= 0) "캐시된 TPMS 값" else latestState.statusMessage
+            statusMessage = if (frontP >= 0 || rearP >= 0) "Cached TPMS values" else latestState.statusMessage
         )
         broadcastState(latestState)
     }
@@ -450,7 +450,7 @@ class TpmsService : Service() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                "TPMS 서비스",
+                "TPMS service",
                 NotificationManager.IMPORTANCE_LOW
             )
             getSystemService(NotificationManager::class.java)
@@ -460,7 +460,7 @@ class TpmsService : Service() {
             NOTIFICATION_ID,
             NotificationCompat.Builder(this, CHANNEL_ID)
                 .setContentTitle("TPMS")
-                .setContentText("Advertise 스캔 모니터링")
+                .setContentText("Advertise scan monitoring")
                 .setSmallIcon(R.drawable.ic_launcher_foreground)
                 .build()
         )

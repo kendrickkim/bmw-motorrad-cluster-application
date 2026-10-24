@@ -44,12 +44,12 @@ fun SectionDistance(
 		Column(
 			modifier = Modifier
 				.fillMaxSize()
-				.padding(top = 8.designedDp()),
+				.padding(top = 20.designedDp()),
 			horizontalAlignment = Alignment.Start,
 			verticalArrangement = Arrangement.Top
 		) {
 			ClusterText(
-				text = "${carStatus.odometerKm.value} Km",
+				text = " ${carStatus.odometerKm.value} Km",
 				fontSize = distanceFontSize,
 				fontWeight = FontWeight.ExtraBold,
 				color = textColor

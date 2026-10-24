@@ -40,6 +40,10 @@ import com.dooderge.bmw.motorrad.cluster.tpms.TpmsService
 import com.dooderge.bmw.motorrad.cluster.tpms.TpmsSettingActivity
 import com.dooderge.bmw.motorrad.cluster.ui.screens.MainScreen
 import com.dooderge.bmw.motorrad.cluster.ui.theme.BMWMotorradClusterTheme
+import java.time.LocalDateTime
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
+import java.time.format.DateTimeParseException
 
 class MainActivity : ComponentActivity() {
 
@@ -86,7 +90,7 @@ class MainActivity : ComponentActivity() {
         if (permissions.all { it.value }) {
             startServices()
         } else {
-            Toast.makeText(this, "필수 권한이 허용되지 않았습니다.", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "Required permissions were not granted.", Toast.LENGTH_LONG).show()
         }
     }
 
@@ -212,7 +216,7 @@ class MainActivity : ComponentActivity() {
         if (!checkOverlayPermission()) {
             Toast.makeText(
                 this,
-                "오버레이 권한이 필요합니다. 설정에서 권한을 허용해주세요.",
+                "Overlay permission is required. Allow it in Settings.",
                 Toast.LENGTH_LONG
             ).show()
         } else {
@@ -238,7 +242,6 @@ class MainActivity : ComponentActivity() {
     override fun onPause() {
         super.onPause()
         unregisterBleReceiver()
-        bleService?.showOverlay()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -384,16 +387,27 @@ class MainActivity : ComponentActivity() {
                 carStatus.linCapturePlaying.value = true
             }
             try {
+                var previousTimestamp: Long? = null
+                var applied = false
                 for ((index, line) in lines.withIndex()) {
                     if (!isActive || generation != linCaptureGeneration) break
-                    val frame = parseLinCaptureLine(line) ?: continue
+                    val sample = parseLinCaptureLine(line) ?: continue
+                    if (applied) {
+                        val wait = sample.timestampMillis?.let { timestamp ->
+                            previousTimestamp?.let { previous ->
+                                (timestamp - previous).coerceIn(0L, 1_000L)
+                            }
+                        } ?: 10L
+                        if (wait > 0L) delay(wait)
+                    }
+                    previousTimestamp = sample.timestampMillis
+                    applied = true
                     val lineNumber = index + 1
                     withContext(Dispatchers.Main) {
                         carStatus.linCaptureLine.value = lineNumber
-                        LinFrame.apply(frame, carStatus)
+                        LinFrame.apply(sample.frame, carStatus)
                         SettingPreference.updateIgnitionTrip(this@MainActivity, carStatus)
                     }
-                    delay(10)
                 }
             } finally {
                 withContext(NonCancellable + Dispatchers.Main) {
@@ -405,16 +419,46 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun parseLinCaptureLine(line: String): ByteArray? {
+    private data class LinCaptureSample(
+        val frame: ByteArray,
+        val timestampMillis: Long?
+    )
+
+    private fun parseLinCaptureLine(line: String): LinCaptureSample? {
         val parts = line.trim().split(Regex("\\s+")).filter { it.isNotEmpty() }
         if (parts.size < LinFrame.LENGTH) return null
+        var offset = 0
+        var timestampMillis: Long? = null
+        if (parts.size >= LinFrame.LENGTH + 2 &&
+            parts[0].matches(Regex("""\d{4}-\d{2}-\d{2}""")) &&
+            parts[1].contains(':')
+        ) {
+            timestampMillis = parseCaptureTimestamp(parts[0], parts[1]) ?: return null
+            offset = 2
+        }
+        if (parts.size - offset < LinFrame.LENGTH) return null
         val frame = ByteArray(LinFrame.LENGTH)
         for (index in 0 until LinFrame.LENGTH) {
-            val token = parts[index].removePrefix("0x").removePrefix("0X")
+            val token = parts[offset + index].removePrefix("0x").removePrefix("0X")
             val value = token.toIntOrNull(16) ?: return null
             frame[index] = value.toByte()
         }
-        return frame
+        return LinCaptureSample(frame, timestampMillis)
+    }
+
+    private fun parseCaptureTimestamp(date: String, time: String): Long? {
+        return try {
+            LocalDateTime.parse("$date $time", captureTimestampFormatter)
+                .toInstant(ZoneOffset.UTC)
+                .toEpochMilli()
+        } catch (_: DateTimeParseException) {
+            null
+        }
+    }
+
+    private companion object {
+        val captureTimestampFormatter: DateTimeFormatter =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS")
     }
 
     override fun onDestroy() {

@@ -19,7 +19,7 @@ import android.util.Log
  */
 class TpmsAdvScanner(
     private val context: Context,
-    private val onSample: (AdvTyreSample) -> Unit,
+    private val onSample: (AdvTireSample) -> Unit,
     private val onScanList: (List<ScannedTpmsDevice>) -> Unit = {},
     private val onState: (TpmsConnectionState, String) -> Unit = { _, _ -> }
 ) {
@@ -44,7 +44,7 @@ class TpmsAdvScanner(
         override fun onScanFailed(errorCode: Int) {
             Log.w(TAG, "scan failed code=$errorCode")
             scanning = false
-            onState(TpmsConnectionState.ERROR, "스캔 실패 ($errorCode)")
+            onState(TpmsConnectionState.ERROR, "Scan failed ($errorCode)")
         }
     }
 
@@ -57,7 +57,7 @@ class TpmsAdvScanner(
         val adapter = (context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager)
             ?.adapter
         if (adapter == null || !adapter.isEnabled) {
-            onState(TpmsConnectionState.ERROR, "Bluetooth 꺼짐")
+            onState(TpmsConnectionState.ERROR, "Bluetooth is off")
             return
         }
         leScanner = adapter.bluetoothLeScanner
@@ -74,11 +74,11 @@ class TpmsAdvScanner(
             // 무필터: 센서가 Service UUID 를 광고에 안 넣는 경우도 수신
             leScanner?.startScan(null, settings, callback)
             scanning = true
-            onState(TpmsConnectionState.SCANNING, "TPMS 스캔 중…")
+            onState(TpmsConnectionState.SCANNING, "Scanning for TPMS…")
             Log.i(TAG, "scan started (no filter)")
         } catch (e: SecurityException) {
             Log.e(TAG, "scan permission", e)
-            onState(TpmsConnectionState.ERROR, "스캔 권한 없음")
+            onState(TpmsConnectionState.ERROR, "Scan permission missing")
         } catch (e: Exception) {
             Log.e(TAG, "unfiltered startScan failed, try UUID filters", e)
             try {
@@ -87,11 +87,11 @@ class TpmsAdvScanner(
                 }
                 leScanner?.startScan(filters, settings, callback)
                 scanning = true
-                onState(TpmsConnectionState.SCANNING, "TPMS 스캔 중…(UUID)")
+                onState(TpmsConnectionState.SCANNING, "Scanning for TPMS… (UUID)")
                 Log.i(TAG, "scan started (UUID filters)")
             } catch (e2: Exception) {
                 Log.e(TAG, "startScan", e2)
-                onState(TpmsConnectionState.ERROR, "스캔 시작 실패")
+                onState(TpmsConnectionState.ERROR, "Could not start scan")
             }
         }
     }
@@ -99,7 +99,7 @@ class TpmsAdvScanner(
     @SuppressLint("MissingPermission")
     fun stopScan() {
         stopScanInternal()
-        onState(TpmsConnectionState.DISCONNECTED, "스캔 중지")
+        onState(TpmsConnectionState.DISCONNECTED, "Scan stopped")
         Log.i(TAG, "scan stopped")
     }
 
@@ -149,7 +149,7 @@ class TpmsAdvScanner(
             if (scanning) {
                 onState(
                     TpmsConnectionState.LISTENING,
-                    "수신 ${seen.size}개 · ${sample.brand} ${sample.sensorIdHex}"
+                    "Received ${seen.size} · ${sample.brand} ${sample.sensorIdHex}"
                 )
             }
         }

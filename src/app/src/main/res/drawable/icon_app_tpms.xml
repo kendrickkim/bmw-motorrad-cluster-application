@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- TPMS / tyre app icon — white glyph, tinted by SectionApps ColorFilter -->
+<!-- TPMS / tire app icon — white glyph, tinted by SectionApps ColorFilter -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="150dp"
     android:height="150dp"
@@ -13,7 +13,7 @@
         android:strokeColor="#FFFFFFFF"
         android:pathData="M28,12 h94 a16,16 0 0 1 16,16 v94 a16,16 0 0 1 -16,16 h-94 a16,16 0 0 1 -16,-16 v-94 a16,16 0 0 1 16,-16 z" />
 
-    <!-- tyre ring (evenOdd hole) -->
+    <!-- tire ring (evenOdd hole) -->
     <path
         android:fillColor="#FFFFFFFF"
         android:fillType="evenOdd"

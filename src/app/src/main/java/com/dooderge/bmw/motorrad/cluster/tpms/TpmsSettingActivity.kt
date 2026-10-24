@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -170,14 +171,14 @@ class TpmsSettingActivity : ComponentActivity() {
                 when (val payload = TpmsQrParser.parse(raw)) {
                     is TpmsQrPayload.SensorHexId -> {
                         tpmsService?.bindSensorId(target, payload.sensorId, "QR ${payload.hex}")
-                        registerHint = "바인딩: ${payload.hex}"
+                        registerHint = "Bound: ${payload.hex}"
                         Toast.makeText(this, registerHint, Toast.LENGTH_SHORT).show()
                     }
                     is TpmsQrPayload.MultiSensorIds -> {
                         payload.ids.forEach { (slot, id) ->
                             tpmsService?.bindSensorId(slot, id, "QR")
                         }
-                        registerHint = "QR 다중 바인딩 ${payload.ids.size}개"
+                        registerHint = "QR bound ${payload.ids.size} sensors"
                         Toast.makeText(this, registerHint, Toast.LENGTH_SHORT).show()
                     }
                     is TpmsQrPayload.BleAddress -> {
@@ -194,11 +195,11 @@ class TpmsSettingActivity : ComponentActivity() {
                         if (target == TirePosition.REAR) {
                             SettingPreference.setTpmsRearDevice(this, "Pecham", payload.address)
                         }
-                        registerHint = "MAC→ID 바인딩"
+                        registerHint = "MAC bound to ID"
                         Toast.makeText(this, registerHint, Toast.LENGTH_SHORT).show()
                     }
                     null -> {
-                        registerHint = "QR 인식 실패 (HHHHHH&HHHHHH 또는 6hex)"
+                        registerHint = "QR not recognized (HHHHHH&HHHHHH or 6 hex)"
                         Toast.makeText(this, registerHint, Toast.LENGTH_SHORT).show()
                     }
                 }
@@ -225,7 +226,7 @@ class TpmsSettingActivity : ComponentActivity() {
                                 color = Color.White
                             )
                             Text(
-                                "Sysgration / Pecham / Wicarlink · GATT 연결 없음",
+                                "Sysgration / Pecham / Wicarlink · no GATT connection",
                                 fontSize = 13.sp,
                                 color = Color(0xFFAAAAAA)
                             )
@@ -306,7 +307,7 @@ class TpmsSettingActivity : ComponentActivity() {
                                         Text(registerHint, color = Color(0xFF8FBC8F), fontSize = 12.sp)
                                     }
 
-                                    Text("수동 ID (6 hex)", color = Color.White, fontSize = 14.sp)
+                                    Text("Manual ID (6 hex)", color = Color.White, fontSize = 14.sp)
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         TextField(
                                             value = manualHex,
@@ -320,23 +321,29 @@ class TpmsSettingActivity : ComponentActivity() {
                                                 focusedTextColor = Color.White,
                                                 unfocusedTextColor = Color.White
                                             ),
-                                            placeholder = { Text("예: 1A2B3C", color = Color.Gray) }
+                                            placeholder = { Text("e.g. 1A2B3C", color = Color.Gray) }
                                         )
-                                        TextButton(onClick = {
+                                        TextButton(
+                                            onClick = {
                                             val p = TpmsQrParser.parse(manualHex)
                                             if (p is TpmsQrPayload.SensorHexId) {
                                                 applyQr(manualHex, scanTarget ?: TirePosition.FRONT)
                                             } else {
                                                 Toast.makeText(
                                                     this@TpmsSettingActivity,
-                                                    "6 hex ID 필요",
+                                                    "6 hex ID required",
                                                     Toast.LENGTH_SHORT
                                                 ).show()
                                             }
-                                        }) { Text("Front 등록") }
-                                        TextButton(onClick = {
+                                        },
+                                            shape = RoundedCornerShape(10.dp)
+                                        ) { Text("Register front") }
+                                        TextButton(
+                                            onClick = {
                                             applyQr(manualHex, TirePosition.REAR)
-                                        }) { Text("Rear 등록") }
+                                        },
+                                            shape = RoundedCornerShape(10.dp)
+                                        ) { Text("Register rear") }
                                     }
 
                                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -351,6 +358,7 @@ class TpmsSettingActivity : ComponentActivity() {
                                                     SettingPreference.setTpmsUnit(this@TpmsSettingActivity, u)
                                                     state = state.copy(displayUnit = u)
                                                 },
+                                                shape = RoundedCornerShape(10.dp),
                                                 colors = ButtonDefaults.buttonColors(
                                                     containerColor = if (selected) Color(0xFF4376A1) else Color(0xFF333333)
                                                 )
@@ -403,11 +411,7 @@ class TpmsSettingActivity : ComponentActivity() {
                                         setResult(RESULT_OK)
                                         finish()
                                     }
-                                    ActionButton(
-                                        "정보 가져오기",
-                                        Modifier.weight(1f),
-                                        fontSize = 13.sp
-                                    ) {
+                                    ActionButton("Refresh", Modifier.weight(1f)) {
                                         sendTpmsAction(TpmsService.ACTION_REFRESH, "both")
                                     }
                                     ActionButton("Back", Modifier.weight(1f)) { finish() }
@@ -437,21 +441,21 @@ class TpmsSettingActivity : ComponentActivity() {
                                 title = {
                                     Text(
                                         when (target) {
-                                            TirePosition.FRONT -> "Front 센서 선택"
-                                            TirePosition.REAR -> "Rear 센서 선택"
+                                            TirePosition.FRONT -> "Select front sensor"
+                                            TirePosition.REAR -> "Select rear sensor"
                                         }
                                     )
                                 },
                                 text = {
                                     Column(Modifier.verticalScroll(rememberScrollState())) {
                                         Text(
-                                            "Advertise RSSI 순 · fbb0 / 27a5",
+                                            "Sorted by advertise RSSI · fbb0 / 27a5",
                                             color = Color(0xFFAAAAAA),
                                             fontSize = 13.sp
                                         )
                                         Spacer(Modifier.height(8.dp))
                                         if (sorted.isEmpty()) {
-                                            Text("스캔 중… / 센서 없음", color = Color.White)
+                                            Text("Scanning… / no sensors", color = Color.White)
                                         }
                                         sorted.forEach { d ->
                                             TextButton(
@@ -461,7 +465,8 @@ class TpmsSettingActivity : ComponentActivity() {
                                                     sendTpmsAction(TpmsService.ACTION_STOP_SCAN, "both")
                                                     tpmsService?.latestState?.let { applyState(it) }
                                                 },
-                                                modifier = Modifier.fillMaxWidth()
+                                                modifier = Modifier.fillMaxWidth(),
+                                                shape = RoundedCornerShape(10.dp)
                                             ) {
                                                 Column(Modifier.fillMaxWidth()) {
                                                     Text(
@@ -486,10 +491,13 @@ class TpmsSettingActivity : ComponentActivity() {
                                     }
                                 },
                                 confirmButton = {
-                                    TextButton(onClick = {
+                                    TextButton(
+                                        onClick = {
                                         scanTarget = null
                                         sendTpmsAction(TpmsService.ACTION_STOP_SCAN, "both")
-                                    }) { Text("닫기") }
+                                    },
+                                        shape = RoundedCornerShape(10.dp)
+                                    ) { Text("Close") }
                                 }
                             )
                         }
@@ -556,8 +564,8 @@ class TpmsSettingActivity : ComponentActivity() {
                 fontSize = 14.sp
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = onScan) { Text("스캔") }
-                Button(onClick = onQr) { Text("QR") }
+                Button(onClick = onScan, shape = RoundedCornerShape(10.dp)) { Text("Scan") }
+                Button(onClick = onQr, shape = RoundedCornerShape(10.dp)) { Text("QR") }
             }
         }
     }
@@ -580,9 +588,12 @@ class TpmsSettingActivity : ComponentActivity() {
                     unfocusedTextColor = Color.White
                 )
             )
-            TextButton(onClick = {
+            TextButton(
+                onClick = {
                 text.toIntOrNull()?.let { onCommit(it) }
-            }) { Text("적용") }
+            },
+                shape = RoundedCornerShape(10.dp)
+            ) { Text("Apply") }
         }
     }
 
@@ -596,6 +607,7 @@ class TpmsSettingActivity : ComponentActivity() {
         Button(
             onClick = onClick,
             modifier = modifier.fillMaxSize(),
+            shape = RoundedCornerShape(10.dp),
             colors = ButtonDefaults.buttonColors(
                 containerColor = Color(0xff333333),
                 contentColor = Color.White

@@ -13,7 +13,7 @@ object TpmsAdvParsers {
     private const val TAG = "TpmsAdvParsers"
     private val SYSGRATION_ADDR = byteArrayOf(0xEA.toByte(), 0xCA.toByte())
 
-    fun parse(result: ScanResult): AdvTyreSample? {
+    fun parse(result: ScanResult): AdvTireSample? {
         val sample = parsePecham(result)
             ?: parseWicarlink(result)
             ?: parseSysgration(result)
@@ -34,7 +34,7 @@ object TpmsAdvParsers {
         return sample
     }
 
-    fun parseSysgration(result: ScanResult): AdvTyreSample? {
+    fun parseSysgration(result: ScanResult): AdvTireSample? {
         val record = result.scanRecord ?: return null
 
         // 1) manufacturerSpecificData 각 엔트리 (열린 소스: value 안에 loc+EACA+…)
@@ -61,7 +61,7 @@ object TpmsAdvParsers {
     }
 
     /** payload = [loc][EA][CA][id0][id1][id2][p0..p3][t0..t3][bat][alarm] (16+) */
-    private fun decodeSysgrationPayload(data: ByteArray, result: ScanResult): AdvTyreSample? {
+    private fun decodeSysgrationPayload(data: ByteArray, result: ScanResult): AdvTireSample? {
         if (data.size < 16) return null
         if (data[1] != SYSGRATION_ADDR[0] || data[2] != SYSGRATION_ADDR[1]) return null
         return buildSysgration(
@@ -79,7 +79,7 @@ object TpmsAdvParsers {
     private fun decodeSysgrationPayloadAfterCidStrip(
         data: ByteArray,
         result: ScanResult
-    ): AdvTyreSample? {
+    ): AdvTireSample? {
         if (data.size < 14) return null
         return buildSysgration(
             locationByte = data[0],
@@ -92,7 +92,7 @@ object TpmsAdvParsers {
         )
     }
 
-    private fun decodeSysgrationFromRawAd(raw: ByteArray, result: ScanResult): AdvTyreSample? {
+    private fun decodeSysgrationFromRawAd(raw: ByteArray, result: ScanResult): AdvTireSample? {
         var i = 0
         while (i + 2 < raw.size) {
             val len = raw[i].toInt() and 0xFF
@@ -127,13 +127,13 @@ object TpmsAdvParsers {
         battery: Int,
         alarm: Boolean,
         result: ScanResult
-    ): AdvTyreSample? {
+    ): AdvTireSample? {
         val location = AdvWheelLocation.fromWire(locationByte.toInt() and 0xFF) ?: return null
         val padded = byteArrayOf(0x00) + idBytes
         val sensorId = ByteBuffer.wrap(padded).order(ByteOrder.LITTLE_ENDIAN).int
         val pressureKpa = ByteBuffer.wrap(pressBytes).order(ByteOrder.LITTLE_ENDIAN).int / 1000f
         val tempC = ByteBuffer.wrap(tempBytes).order(ByteOrder.LITTLE_ENDIAN).int / 100f
-        return AdvTyreSample(
+        return AdvTireSample(
             sensorId = sensorId,
             sensorIdHex = TpmsProtocol.sensorIdToHex(sensorId),
             pressureKpaCents = TpmsProtocol.kpaToCents(pressureKpa),
@@ -147,7 +147,7 @@ object TpmsAdvParsers {
         )
     }
 
-    fun parsePecham(result: ScanResult): AdvTyreSample? {
+    fun parsePecham(result: ScanResult): AdvTireSample? {
         val record = result.scanRecord ?: return null
         val bytes = record.bytes ?: return null
         val name = record.deviceName
@@ -169,7 +169,7 @@ object TpmsAdvParsers {
         val mac = result.device?.address.orEmpty()
         val sensorId = mac.hashCode()
 
-        return AdvTyreSample(
+        return AdvTireSample(
             sensorId = sensorId,
             sensorIdHex = "%08X".format(sensorId),
             pressureKpaCents = TpmsProtocol.kpaToCents(pressureKpa),
@@ -183,7 +183,7 @@ object TpmsAdvParsers {
         )
     }
 
-    fun parseWicarlink(result: ScanResult): AdvTyreSample? {
+    fun parseWicarlink(result: ScanResult): AdvTireSample? {
         val record = result.scanRecord ?: return null
         val uuids = record.serviceUuids
         val hasFbb0 = uuids?.contains(TpmsBleUuids.SERVICE_FBB0) == true
@@ -205,7 +205,7 @@ object TpmsAdvParsers {
             ((bytes[24].toInt() and 0xFF) shl 8) or
             ((bytes[25].toInt() and 0xFF) shl 16)
 
-        return AdvTyreSample(
+        return AdvTireSample(
             sensorId = sensorId,
             sensorIdHex = TpmsProtocol.sensorIdToHex(sensorId and 0xFFFFFF),
             pressureKpaCents = TpmsProtocol.kpaToCents(pressureKpa),

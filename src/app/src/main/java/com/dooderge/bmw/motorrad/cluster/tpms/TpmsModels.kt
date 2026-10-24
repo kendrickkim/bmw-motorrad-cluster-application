@@ -108,7 +108,7 @@ data class WheelDeviceInfo(
         sensorId != Int.MIN_VALUE -> TpmsProtocol.sensorIdToHex(sensorId)
         name.isNotBlank() && address.isNotBlank() -> "$name ($address)"
         address.isNotBlank() -> address
-        else -> "선택 안 됨"
+        else -> "Not selected"
     }
 }
 
@@ -156,7 +156,7 @@ data class ScannedTpmsDevice(
 )
 
 /** Advertise 파싱 결과 (바인딩 전) */
-data class AdvTyreSample(
+data class AdvTireSample(
     val sensorId: Int,
     val sensorIdHex: String,
     val pressureKpaCents: Int,

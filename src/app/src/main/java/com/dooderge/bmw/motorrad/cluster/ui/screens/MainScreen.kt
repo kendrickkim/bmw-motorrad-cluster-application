@@ -62,18 +62,19 @@ import com.dooderge.bmw.motorrad.cluster.ui.component.sections.SectionCoolantTem
 import com.dooderge.bmw.motorrad.cluster.ui.component.sections.SectionFuelGuage
 import com.dooderge.bmw.motorrad.cluster.ui.component.sections.SectionStatus
 import com.dooderge.bmw.motorrad.cluster.ui.component.sections.SectionTime
-import com.dooderge.bmw.motorrad.cluster.ui.component.sections.SectionTyrePressure
+import com.dooderge.bmw.motorrad.cluster.ui.component.sections.SectionTirePressure
 import com.dooderge.bmw.motorrad.cluster.ui.component.sections.SectionVoltage
-// DO NOT DELETE — SectionDirection import (슬롯은 Fuel Guage로 임시 교체, 재사용 예정)
+// DO NOT DELETE — SectionDirection import (슬롯은 Trip으로 임시 교체, 재사용 예정)
 import com.dooderge.bmw.motorrad.cluster.ui.component.sections.SectionDirection
 import com.dooderge.bmw.motorrad.cluster.ui.component.setDesignedSizeByWidth
 import com.dooderge.bmw.motorrad.cluster.ui.component.setDesginedSizeByHeight
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import java.util.Timer
-import java.util.TimerTask
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 data class HeaderInfo(
     var strNetworkInfo: MutableState<String> = mutableStateOf(""),
     var strTimeInfo: MutableState<String> = mutableStateOf(""),
@@ -124,10 +125,6 @@ fun MainScreen(
     firstBoot : Boolean
 ) {
 
-    var strMutTime by remember { mutableStateOf("00:00:00") }
-    var strMutDate by remember { mutableStateOf("2026-01-01") }
-    var strBtDeviceName by remember { mutableStateOf("NONE") }
-
     var sizeScreen by remember { mutableStateOf(IntSize(1, 1)) }
     var sizeBackgroundImage by remember { mutableStateOf(IntSize(1, 1)) }
     var sizeDisplayBackgroundImage by remember { mutableStateOf(IntSize(1, 1)) }
@@ -141,52 +138,41 @@ fun MainScreen(
 
     val headerInfo = remember { HeaderInfo() }
 
-    if (carStatus.bt_connection_status.value == false && !carStatus.linCapturePlaying.value)
-    {
-        carStatus.gear.value = -1
-        carStatus.rpm.value = 0
-        carStatus.speed.value = 0
-        carStatus.voltage.value = 0
-        carStatus.coolant_temperature.value = 0
+    val btConnected = carStatus.bt_connection_status.value
+    val linCapturePlaying = carStatus.linCapturePlaying.value
+    LaunchedEffect(btConnected, linCapturePlaying) {
+        if (!btConnected && !linCapturePlaying) {
+            carStatus.gear.value = -1
+            carStatus.rpm.value = 0
+            carStatus.speed.value = 0
+            carStatus.voltage.value = 0
+            carStatus.coolant_temperature.value = 0
+        }
     }
 
-
+    val timeFormatter = remember { DateTimeFormatter.ofPattern("HH:mm:ss") }
+    val dateFormatter = remember { DateTimeFormatter.ofPattern("yyyy-MM-dd") }
     LaunchedEffect(Unit) {
-        val timerRefreshDateTime = Timer()
+        // 시간 / 날짜 리프레시
+        while (isActive) {
+            val now = LocalDateTime.now()
+            val time = now.format(timeFormatter)
+            val date = now.format(dateFormatter)
+            if (headerInfo.strTimeInfo.value != time) headerInfo.strTimeInfo.value = time
+            if (headerInfo.strDateInfo.value != date) headerInfo.strDateInfo.value = date
+            val btName = SettingPreference.getDeviceName(context).orEmpty().ifEmpty { "[BT]NONE" }
+            if (headerInfo.strNetworkInfo.value != btName) headerInfo.strNetworkInfo.value = btName
+            delay(500)
+        }
+    }
 
-        timerRefreshDateTime.schedule(
-            object : TimerTask() {  // 시간 / 날짜 리프레시 타이머
-                override fun run() {
-                    strMutTime = java.text.SimpleDateFormat(
-                        "HH:mm:ss",
-                        java.util.Locale.getDefault()
-                    ).format(java.util.Date())
-
-                    strMutDate = java.text.SimpleDateFormat(
-                        "yyyy-MM-dd",
-                        java.util.Locale.getDefault()
-                    ).format(java.util.Date())
-
-                    val btDeviceName: String? = SettingPreference.getDeviceName(context)
-                    strBtDeviceName = btDeviceName.toString()
-                    if (strBtDeviceName.isEmpty() || strBtDeviceName == "null") strBtDeviceName =
-                        "[BT]NONE"
-
-                    headerInfo.strTimeInfo.value = strMutTime
-                    headerInfo.strDateInfo.value = strMutDate
-                    headerInfo.strNetworkInfo.value = strBtDeviceName
-
-
-                }
-            }, 0, 100
-        )
-
-        if(firstBoot) {
+    LaunchedEffect(firstBoot) {
+        if (firstBoot) {
             delay(500)
             carStatus.rpm.value = 14000
             delay(2000)
         }
-		carStatus.rpm.value = 0
+        carStatus.rpm.value = 0
     }
 
     LaunchedEffect(sizeScreen)
@@ -403,13 +389,13 @@ fun MainScreen(
                                 PaddingValues(start = left, top = top1),
                             ),
                             SectionInfo(
-                                "Time",
+                                "Range",
                                 PaddingValues(end = right1, top = top1),
                                 Alignment.TopEnd
                             ),
-                            // 구 Direction 슬롯 → Fuel Guage 표시 (Direction UI는 삭제하지 말 것)
+                            // 구 Direction 슬롯 → Trip 표시 (Direction UI는 삭제하지 말 것)
                             SectionInfo(
-                                "Fuel Guage",
+                                "Trip",
                                 PaddingValues(end = right2, top = top1),
                                 Alignment.TopEnd
                             ),
@@ -419,9 +405,9 @@ fun MainScreen(
                                 PaddingValues(start = left, top = top2),
                                 Alignment.TopStart
                             ),
-                            // 구 Fuel Guage 슬롯 → Tyre Pressure 표시
+                            // 구 Fuel Guage 슬롯 → Tire Pressure 표시
                             SectionInfo(
-                                "Tyre Pressure",
+                                "Tire Pressure",
                                 PaddingValues(end = right1, top = top2),
                                 Alignment.TopEnd
                             ),
@@ -433,7 +419,7 @@ fun MainScreen(
                                 Alignment.TopStart
                             ),
                             SectionInfo(
-                                "Temp.",
+                                "Eng Temp.",
                                 PaddingValues(start = left1, top = top3),
                                 Alignment.TopStart
                             ),
@@ -499,8 +485,8 @@ fun MainScreen(
 
                             SectionTime(
                                 modifier = Modifier
-                                    .padding(end = 28.designedDp(), top = 232.designedDp())
-                                    .size(316.designedDp(), 161.designedDp()),
+                                    .padding(end = 433.designedDp(), top = 232.designedDp())
+                                    .size(226.designedDp(), 161.designedDp()),
                                 carStatus = carStatus,
                                 alignment = Alignment.TopEnd
                             )
@@ -508,7 +494,7 @@ fun MainScreen(
                             /*
                              * =====================================================================
                              * DO NOT DELETE — SectionDirection (나침반/헤딩)
-                             * 다른 에이전트: 아래 블록을 제거하지 말 것. 슬롯만 Fuel Guage로 임시 교체.
+                             * 다른 에이전트: 아래 블록을 제거하지 말 것. 슬롯만 Trip으로 임시 교체.
                              * 파일: ui/component/sections/SectionDirection.kt 도 유지.
                              * =====================================================================
                              *
@@ -521,18 +507,18 @@ fun MainScreen(
                              * )
                              */
 
-                            // 구 Direction 슬롯 → Fuel Guage
+                            // 구 Time 슬롯 → Range
                             SectionFuelGuage(
                                 modifier = Modifier
-                                    .padding(end = 433.designedDp(), top = 232.designedDp())
-                                    .size(226.designedDp(), 161.designedDp()),
+                                    .padding(end = 28.designedDp(), top = 232.designedDp())
+                                    .size(316.designedDp(), 161.designedDp()),
                                 carStatus = carStatus,
                                 alignment = Alignment.TopEnd,
                                 compact = true
                             )
 
-                            // 구 Fuel Guage 슬롯 → Tyre Pressure (앞/뒤 압력·온도)
-                            SectionTyrePressure(
+                            // 구 Fuel Guage 슬롯 → Tire Pressure (앞/뒤 압력·온도)
+                            SectionTirePressure(
                                 modifier = Modifier
                                     .padding(end = 28.designedDp(), top = 524.designedDp())
                                     .size(554.designedDp(), 150.designedDp()),
@@ -586,7 +572,7 @@ fun HeaderSection(
         {
             ClusterText(
                 text = if (carStatus.linCapturePlaying.value) {
-                    carStatus.linCaptureLine.value.toString()
+                    "Simulation : ${carStatus.linCaptureLine.value}"
                 } else {
                     headerInfo.strNetworkInfo.value
                 },

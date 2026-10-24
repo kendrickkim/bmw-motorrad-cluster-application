@@ -51,7 +51,7 @@ class TpmsQrScanActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_tpms_qr_scan)
         findViewById<TextView>(R.id.tpms_qr_hint).text =
-            "센서 QR을 프레임 안에 맞추세요\n(HHHHHH&HHHHHH 또는 6hex ID)"
+            "Align the sensor QR inside the frame\n(HHHHHH&HHHHHH or 6 hex ID)"
         findViewById<View>(R.id.tpms_qr_close).setOnClickListener { finish() }
 
         when {
