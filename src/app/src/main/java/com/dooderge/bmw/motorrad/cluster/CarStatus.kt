@@ -177,6 +177,10 @@ data class CarStatus(
             generalFault.value = other.generalFault.value
         if (ignitionKnown.value != other.ignitionKnown.value)
             ignitionKnown.value = other.ignitionKnown.value
+        if (linCapturePlaying.value != other.linCapturePlaying.value)
+            linCapturePlaying.value = other.linCapturePlaying.value
+        if (linCaptureLine.value != other.linCaptureLine.value)
+            linCaptureLine.value = other.linCaptureLine.value
     }
 
     fun toJson(): String {
@@ -215,7 +219,9 @@ data class CarStatus(
                 "speedE9Kmh": ${speedE9Kmh.value},
                 "fuelFault": ${fuelFault.value},
                 "generalFault": ${generalFault.value},
-                "ignitionKnown": ${ignitionKnown.value}
+                "ignitionKnown": ${ignitionKnown.value},
+                "linCapturePlaying": ${linCapturePlaying.value},
+                "linCaptureLine": ${linCaptureLine.value}
             }
         """.trimIndent()
     }
@@ -283,6 +289,10 @@ data class CarStatus(
                 "generalFault" -> generalFault.value =
                     matchResult.groupValues[2].toIntOrNull() ?: 0
                 "ignitionKnown" -> ignitionKnown.value = matchResult.groupValues[2].toBoolean()
+                "linCapturePlaying" -> linCapturePlaying.value =
+                    matchResult.groupValues[2].toBoolean()
+                "linCaptureLine" -> linCaptureLine.value =
+                    matchResult.groupValues[2].toIntOrNull() ?: 0
             }
         }
     }

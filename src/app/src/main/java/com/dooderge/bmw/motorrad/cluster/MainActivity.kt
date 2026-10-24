@@ -27,23 +27,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.lifecycleScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.NonCancellable
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import com.dooderge.bmw.motorrad.cluster.launcher.LauncherActivity
 import com.dooderge.bmw.motorrad.cluster.tpms.TpmsService
 import com.dooderge.bmw.motorrad.cluster.tpms.TpmsSettingActivity
 import com.dooderge.bmw.motorrad.cluster.ui.screens.MainScreen
 import com.dooderge.bmw.motorrad.cluster.ui.theme.BMWMotorradClusterTheme
-import java.time.LocalDateTime
-import java.time.ZoneOffset
-import java.time.format.DateTimeFormatter
-import java.time.format.DateTimeParseException
 
 class MainActivity : ComponentActivity() {
 
@@ -298,7 +286,7 @@ class MainActivity : ComponentActivity() {
                         onTpmsClick = {
                             startActivity(Intent(this, TpmsSettingActivity::class.java))
                         },
-                        onEngineClick = { playLinCapture() },
+                        onEngineClick = { BleService.toggleLinCapture() },
                         context = this,
                         carStatus = carStatus,
                         firstBoot = firstBoot
@@ -316,6 +304,10 @@ class MainActivity : ComponentActivity() {
         if (launchIntent != null) {
             // 새로운 Task로 실행되도록 플래그 확인 및 추가
             launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            // 큰 오버레이일 때만 헤드유닛 왼쪽 여백(세션 전용, 설정에 저장되지 않음)
+            if (SettingPreference.isLargeOverlay(this)) {
+                launchIntent.putExtra("user_left_padding", 700)
+            }
             try {
                 startActivity(launchIntent)
             } catch (e: Exception) {
@@ -382,109 +374,7 @@ class MainActivity : ComponentActivity() {
         TpmsService.startPolling(this)
     }
 
-    private var linCaptureJob: Job? = null
-    private var linCaptureGeneration = 0
-
-    private fun playLinCapture() {
-        if (!SettingPreference.isLinTestEnabled(this)) return
-        // 시뮬레이션 중 재터치 → 중단
-        if (carStatus.linCapturePlaying.value || linCaptureJob?.isActive == true) {
-            stopLinCapture()
-            return
-        }
-        val generation = ++linCaptureGeneration
-        linCaptureJob?.cancel()
-        linCaptureJob = lifecycleScope.launch(Dispatchers.IO) {
-            val lines = resources.openRawResource(R.raw.lin_capture)
-                .bufferedReader()
-                .readLines()
-            withContext(Dispatchers.Main) {
-                carStatus.linCapturePlaying.value = true
-            }
-            try {
-                var previousTimestamp: Long? = null
-                var applied = false
-                for ((index, line) in lines.withIndex()) {
-                    if (!isActive || generation != linCaptureGeneration) break
-                    val sample = parseLinCaptureLine(line) ?: continue
-                    if (applied) {
-                        val wait = sample.timestampMillis?.let { timestamp ->
-                            previousTimestamp?.let { previous ->
-                                (timestamp - previous).coerceIn(0L, 1_000L)
-                            }
-                        } ?: 10L
-                        if (wait > 0L) delay(wait)
-                    }
-                    previousTimestamp = sample.timestampMillis
-                    applied = true
-                    val lineNumber = index + 1
-                    withContext(Dispatchers.Main) {
-                        carStatus.linCaptureLine.value = lineNumber
-                        LinFrame.apply(sample.frame, carStatus)
-                        SettingPreference.updateIgnitionTrip(this@MainActivity, carStatus)
-                    }
-                }
-            } finally {
-                withContext(NonCancellable + Dispatchers.Main) {
-                    if (generation == linCaptureGeneration) {
-                        carStatus.linCapturePlaying.value = false
-                    }
-                }
-            }
-        }
-    }
-
-    private fun stopLinCapture() {
-        linCaptureGeneration++
-        linCaptureJob?.cancel()
-        linCaptureJob = null
-        carStatus.linCapturePlaying.value = false
-    }
-
-    private data class LinCaptureSample(
-        val frame: ByteArray,
-        val timestampMillis: Long?
-    )
-
-    private fun parseLinCaptureLine(line: String): LinCaptureSample? {
-        val parts = line.trim().split(Regex("\\s+")).filter { it.isNotEmpty() }
-        if (parts.size < LinFrame.LENGTH) return null
-        var offset = 0
-        var timestampMillis: Long? = null
-        if (parts.size >= LinFrame.LENGTH + 2 &&
-            parts[0].matches(Regex("""\d{4}-\d{2}-\d{2}""")) &&
-            parts[1].contains(':')
-        ) {
-            timestampMillis = parseCaptureTimestamp(parts[0], parts[1]) ?: return null
-            offset = 2
-        }
-        if (parts.size - offset < LinFrame.LENGTH) return null
-        val frame = ByteArray(LinFrame.LENGTH)
-        for (index in 0 until LinFrame.LENGTH) {
-            val token = parts[offset + index].removePrefix("0x").removePrefix("0X")
-            val value = token.toIntOrNull(16) ?: return null
-            frame[index] = value.toByte()
-        }
-        return LinCaptureSample(frame, timestampMillis)
-    }
-
-    private fun parseCaptureTimestamp(date: String, time: String): Long? {
-        return try {
-            LocalDateTime.parse("$date $time", captureTimestampFormatter)
-                .toInstant(ZoneOffset.UTC)
-                .toEpochMilli()
-        } catch (_: DateTimeParseException) {
-            null
-        }
-    }
-
-    private companion object {
-        val captureTimestampFormatter: DateTimeFormatter =
-            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS")
-    }
-
     override fun onDestroy() {
-        stopLinCapture()
         super.onDestroy()
     }
 

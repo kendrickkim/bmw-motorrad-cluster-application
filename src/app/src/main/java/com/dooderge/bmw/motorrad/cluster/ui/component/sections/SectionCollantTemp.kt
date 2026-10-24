@@ -41,7 +41,7 @@ fun SectionCoolantTemp
 		{
 			val celsius = carStatus.coolant_temperature.value / 10
 			ClusterText(
-				text = "${celsius} ℃",
+				text = "${celsius} °C",
 				fontSize = 90f,
 				fontWeight = FontWeight.ExtraBold,
 			)

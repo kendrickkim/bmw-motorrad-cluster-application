@@ -12,6 +12,7 @@ class SettingPreference private constructor() {
         private const val ADDRESS_KEY = "address"
         private const val OVERLAY_X_KEY = "overlayX"
         private const val OVERLAY_Y_KEY = "overlayY"
+        private const val LARGE_OVERLAY_KEY = "largeOverlay"
         private const val TPMS_ENABLED_KEY = "tpmsEnabled"
         private const val TPMS_DEVICE_NAME_KEY = "tpmsDeviceName"
         private const val TPMS_ADDRESS_KEY = "tpmsAddress"
@@ -64,6 +65,16 @@ class SettingPreference private constructor() {
         fun setOverlayPosition(context: Context, x: Int, y: Int) {
             val pref = context.getSharedPreferences(PREFERENCE_NAME, Context.MODE_PRIVATE)
             pref.edit().putInt(OVERLAY_X_KEY, x).putInt(OVERLAY_Y_KEY, y).apply()
+        }
+
+        fun isLargeOverlay(context: Context): Boolean {
+            return context.getSharedPreferences(PREFERENCE_NAME, Context.MODE_PRIVATE)
+                .getBoolean(LARGE_OVERLAY_KEY, false)
+        }
+
+        fun setLargeOverlay(context: Context, enabled: Boolean) {
+            context.getSharedPreferences(PREFERENCE_NAME, Context.MODE_PRIVATE)
+                .edit().putBoolean(LARGE_OVERLAY_KEY, enabled).apply()
         }
 
         fun setWheelRpmToSpeedFactor(context: Context, factor: Float) {

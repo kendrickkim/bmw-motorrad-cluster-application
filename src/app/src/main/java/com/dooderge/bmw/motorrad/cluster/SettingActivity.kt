@@ -77,6 +77,9 @@ class SettingActivity : ComponentActivity() {
             var linLogging by remember {
                 mutableStateOf(SettingPreference.isLinLogging(this))
             }
+            var largeOverlayEnabled by remember {
+                mutableStateOf(SettingPreference.isLargeOverlay(this))
+            }
 
             DisposableEffect(Unit) {
                 val receiver = object : BroadcastReceiver() {
@@ -145,7 +148,10 @@ class SettingActivity : ComponentActivity() {
                             horizontalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
                             Column(
-                                modifier = Modifier.weight(1f),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxHeight()
+                                    .verticalScroll(rememberScrollState()),
                                 verticalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -248,6 +254,34 @@ class SettingActivity : ComponentActivity() {
                                         onCheckedChange = { checked ->
                                             showSpeedGearOverlay.value = checked
                                             BleService.setOverlayPreview(checked)
+                                        },
+                                        colors = SwitchDefaults.colors(
+                                            checkedThumbColor = Color.White,
+                                            checkedTrackColor = Color(0xFF4376A1),
+                                            checkedBorderColor = Color(0xFF4376A1),
+                                            uncheckedThumbColor = Color(0xFFAAAAAA),
+                                            uncheckedTrackColor = Color(0xFF333333),
+                                            uncheckedBorderColor = Color(0xFF666666)
+                                        )
+                                    )
+                                }
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        text = "Use Large Overlay",
+                                        fontSize = 18.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = Color.White,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    Switch(
+                                        checked = largeOverlayEnabled,
+                                        onCheckedChange = { checked ->
+                                            largeOverlayEnabled = checked
+                                            SettingPreference.setLargeOverlay(
+                                                this@SettingActivity,
+                                                checked
+                                            )
+                                            BleService.setLargeOverlay(checked)
                                         },
                                         colors = SwitchDefaults.colors(
                                             checkedThumbColor = Color.White,
