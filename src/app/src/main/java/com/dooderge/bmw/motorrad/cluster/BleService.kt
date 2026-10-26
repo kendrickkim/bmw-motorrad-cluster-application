@@ -106,6 +106,9 @@ class BleService : Service() {
 
         private val captureTimestampFormatter: DateTimeFormatter =
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS")
+
+        private const val SIM_TIRE_PRESSURE = "100.0"
+        private const val SIM_TIRE_META = "99.8 °C"
     }
 
     private data class CompactOverlay(
@@ -552,28 +555,35 @@ class BleService : Service() {
         ui.coolant.text = String.format("%d°C", status.coolant_temperature.value / 10)
         ui.range.text = "${status.fuelRangeKm.value} km"
 
-        val unit = SettingPreference.getTpmsUnit(this)
-        val frontRaw = SettingPreference.getTpmsLastFrontPressure(this)
-        val rearRaw = SettingPreference.getTpmsLastRearPressure(this)
-        val frontTemp = SettingPreference.getTpmsLastFrontTemp(this)
-        val rearTemp = SettingPreference.getTpmsLastRearTemp(this)
-        val frontBat = SettingPreference.getTpmsLastFrontBattery(this)
-        val rearBat = SettingPreference.getTpmsLastRearBattery(this)
-        ui.frontPressure.text = formatOverlayPressure(frontRaw, unit)
-        ui.rearPressure.text = formatOverlayPressure(rearRaw, unit)
-        ui.frontDetail.text = formatOverlayTireDetail(frontTemp, frontBat)
-        ui.rearDetail.text = formatOverlayTireDetail(rearTemp, rearBat)
+        if (status.linCapturePlaying.value) {
+            // 메인 시뮬레이션(SectionTirePressure)과 동일 표시
+            ui.frontPressure.text = SIM_TIRE_PRESSURE
+            ui.rearPressure.text = SIM_TIRE_PRESSURE
+            ui.frontDetail.text = SIM_TIRE_META
+            ui.rearDetail.text = SIM_TIRE_META
+        } else {
+            val unit = SettingPreference.getTpmsUnit(this)
+            val frontRaw = SettingPreference.getTpmsLastFrontPressure(this)
+            val rearRaw = SettingPreference.getTpmsLastRearPressure(this)
+            val frontTemp = SettingPreference.getTpmsLastFrontTemp(this)
+            val rearTemp = SettingPreference.getTpmsLastRearTemp(this)
+            ui.frontPressure.text = formatOverlayPressure(frontRaw, unit)
+            ui.rearPressure.text = formatOverlayPressure(rearRaw, unit)
+            ui.frontDetail.text = formatOverlayTireTemp(frontTemp)
+            ui.rearDetail.text = formatOverlayTireTemp(rearTemp)
+        }
     }
 
     private fun formatOverlayPressure(raw: Int, unit: TpmsPressureUnit): String {
         if (raw < 0) return "--"
+        // 큰 오버레이: 단위(PSI/Bar/kPa) 문구 없이 숫자만
         return TpmsProtocol.formatPressure(raw, unit)
+            .substringBefore(' ')
+            .ifBlank { "--" }
     }
 
-    private fun formatOverlayTireDetail(tempC: Int, batteryPct: Int): String {
-        val temp = if (tempC < 0) "-- C" else "$tempC C"
-        val bat = if (batteryPct < 0) "--%" else "$batteryPct%"
-        return "$temp / $bat"
+    private fun formatOverlayTireTemp(tempC: Int): String {
+        return if (tempC < 0) "-- °C" else "$tempC °C"
     }
 
     var currentCarStatus = CarStatus()
