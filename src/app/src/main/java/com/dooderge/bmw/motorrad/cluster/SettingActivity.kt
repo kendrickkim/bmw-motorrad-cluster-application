@@ -111,33 +111,37 @@ class SettingActivity : ComponentActivity() {
                                     .verticalScroll(rememberScrollState()),
                                 verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
+                                // Device: full-width single row
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    SettingLabel("Device")
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(contentControlHeight)
+                                            .border(2.dp, Color.Gray)
+                                            .padding(horizontal = 8.dp),
+                                        contentAlignment = Alignment.CenterStart
+                                    ) {
+                                        Text(
+                                            text = selectedDeviceName.ifEmpty { "No device selected" },
+                                            fontSize = contentControlFontSize,
+                                            color = Color.White,
+                                            fontWeight = FontWeight.Medium,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    SettingContentButton(
+                                        label = "Select",
+                                        onClick = { showDialog = true }
+                                    )
+                                }
                                 SettingPairRow(
                                     left = {
-                                        SettingLabel("Device")
-                                        Box(
-                                            modifier = Modifier
-                                                .weight(1f)
-                                                .height(contentControlHeight)
-                                                .border(2.dp, Color.Gray)
-                                                .padding(horizontal = 8.dp),
-                                            contentAlignment = Alignment.CenterStart
-                                        ) {
-                                            Text(
-                                                text = selectedDeviceName.ifEmpty { "No device selected" },
-                                                fontSize = contentControlFontSize,
-                                                color = Color.White,
-                                                fontWeight = FontWeight.Medium,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis
-                                            )
-                                        }
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        SettingContentButton(
-                                            label = "Select",
-                                            onClick = { showDialog = true }
-                                        )
-                                    },
-                                    right = {
                                         SettingLabel("Speed Factor")
                                         Box(
                                             modifier = Modifier
@@ -160,10 +164,8 @@ class SettingActivity : ComponentActivity() {
                                                 modifier = Modifier.fillMaxWidth()
                                             )
                                         }
-                                    }
-                                )
-                                SettingPairRow(
-                                    left = {
+                                    },
+                                    right = {
                                         SettingSwitchRow(
                                             label = "LIN Test",
                                             checked = linTestEnabled,
@@ -173,16 +175,6 @@ class SettingActivity : ComponentActivity() {
                                                     this@SettingActivity,
                                                     it
                                                 )
-                                            }
-                                        )
-                                    },
-                                    right = {
-                                        SettingSwitchRow(
-                                            label = "Speed / Gear Overlay",
-                                            checked = showSpeedGearOverlay.value,
-                                            onCheckedChange = { checked ->
-                                                showSpeedGearOverlay.value = checked
-                                                BleService.setOverlayPreview(checked)
                                             }
                                         )
                                     }
@@ -204,15 +196,11 @@ class SettingActivity : ComponentActivity() {
                                     },
                                     right = {
                                         SettingSwitchRow(
-                                            label = "GPS Logging",
-                                            checked = gpsLogging,
+                                            label = "Speed / Gear Overlay",
+                                            checked = showSpeedGearOverlay.value,
                                             onCheckedChange = { checked ->
-                                                gpsLogging = checked
-                                                SettingPreference.setGpsLogging(
-                                                    this@SettingActivity,
-                                                    checked
-                                                )
-                                                BleService.setGpsLogging(checked)
+                                                showSpeedGearOverlay.value = checked
+                                                BleService.setOverlayPreview(checked)
                                             }
                                         )
                                     }
@@ -232,7 +220,20 @@ class SettingActivity : ComponentActivity() {
                                             }
                                         )
                                     },
-                                    right = { }
+                                    right = {
+                                        SettingSwitchRow(
+                                            label = "GPS Logging",
+                                            checked = gpsLogging,
+                                            onCheckedChange = { checked ->
+                                                gpsLogging = checked
+                                                SettingPreference.setGpsLogging(
+                                                    this@SettingActivity,
+                                                    checked
+                                                )
+                                                BleService.setGpsLogging(checked)
+                                            }
+                                        )
+                                    }
                                 )
                                 SettingPairRow(
                                     left = {
