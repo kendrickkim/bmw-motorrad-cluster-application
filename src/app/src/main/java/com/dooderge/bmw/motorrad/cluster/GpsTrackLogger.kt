@@ -20,7 +20,14 @@ class GpsTrackLogger(private val context: Context) {
     private var fileDate: LocalDate? = null
 
     /** 한 포인트를 CSV 한 줄로 기록. 날짜가 바뀌면 파일을 다시 연다. */
-    fun append(time: ZonedDateTime, latitude: Double, longitude: Double, altitude: Double) {
+    fun append(
+        time: ZonedDateTime,
+        latitude: Double,
+        longitude: Double,
+        altitude: Double,
+        speedKmh: Int,
+        rpm: Int,
+    ) {
         synchronized(lock) {
             val kst = time.withZoneSameInstant(KST)
             val day = kst.toLocalDate()
@@ -31,11 +38,13 @@ class GpsTrackLogger(private val context: Context) {
             writer.write(
                 String.format(
                     Locale.US,
-                    "%s,%.6f,%.6f,%.1f",
+                    "%s,%.6f,%.6f,%.1f,%d,%d",
                     kst.format(LINE_TIME),
                     latitude,
                     longitude,
-                    altitude
+                    altitude,
+                    speedKmh,
+                    rpm
                 )
             )
             writer.newLine()
@@ -79,7 +88,7 @@ class GpsTrackLogger(private val context: Context) {
         writer = next
         fileDate = day
         if (!append) {
-            next.write("time,latitude,longitude,altitude")
+            next.write("time,latitude,longitude,altitude,speed,rpm")
             next.newLine()
             next.flush()
         }

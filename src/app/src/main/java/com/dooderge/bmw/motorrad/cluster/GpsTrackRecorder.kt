@@ -14,12 +14,13 @@ import java.time.ZoneId
 import java.time.ZonedDateTime
 
 /**
- * 차량 속도 10 km/h 이상일 때 5초마다 GPS(시간·위도·경도·고도)를 CSV로 기록.
+ * 차량 속도 10 km/h 이상일 때 5초마다 GPS(시간·위도·경도·고도·속도·RPM)를 CSV로 기록.
  * 시각·파일 일자는 KST(Asia/Seoul) 기준.
  */
 class GpsTrackRecorder(
     private val context: Context,
     private val speedKmH: () -> Int,
+    private val rpm: () -> Int,
 ) {
     private val logger = GpsTrackLogger(context)
     private val handler = Handler(Looper.getMainLooper())
@@ -72,14 +73,17 @@ class GpsTrackRecorder(
     }
 
     private fun tryRecord() {
-        if (speedKmH() < MIN_SPEED_KMH) return
+        val speed = speedKmH()
+        if (speed < MIN_SPEED_KMH) return
         val location = lastLocation ?: return
         val altitude = if (location.hasAltitude()) location.altitude else 0.0
         logger.append(
             time = ZonedDateTime.now(KST),
             latitude = location.latitude,
             longitude = location.longitude,
-            altitude = altitude
+            altitude = altitude,
+            speedKmh = speed,
+            rpm = rpm()
         )
     }
 

@@ -954,7 +954,11 @@ class BleService : Service() {
     }
 
     private val linDataLogger = LinDataLogger(this)
-    private val gpsTrackRecorder = GpsTrackRecorder(this) { currentCarStatus.speed.value }
+    private val gpsTrackRecorder = GpsTrackRecorder(
+        this,
+        speedKmH = { currentCarStatus.speed.value },
+        rpm = { currentCarStatus.rpm.value },
+    )
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
