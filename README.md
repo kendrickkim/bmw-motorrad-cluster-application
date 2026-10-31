@@ -2,13 +2,15 @@
 
 [한국어](README-kr.md)
 
-Jetpack Compose Android app that acts as a **phone-based Motorrad cluster**: receives vehicle telemetry from the ESP32 over BLE, shows speed / RPM / gear / voltage, and can work as a landscape home/launcher alongside Android Auto (e.g. Headunit Reloaded).
+Jetpack Compose Android app that acts as a **phone-based Motorrad cluster**: receives vehicle telemetry from the ESP32 over BLE, shows speed / RPM / gear / voltage, and is designed to run **together with [Open Headunit](https://github.com/andreknieriem/open-headunit)** (Android Auto receiver; package `com.andrerinas.headunitrevived`) as a landscape home/launcher.
 
 | Repository | Role |
 |---|---|
 | [bmw-motorrad-cluster-linbus](https://github.com/kendrickkim/bmw-motorrad-cluster-linbus) | LIN decode documentation |
 | [bmw-motorrad-cluster-esp32](https://github.com/kendrickkim/bmw-motorrad-cluster-esp32) | ESP32 LIN → BLE / HID firmware |
 | **This repo** (`bmw-motorrad-cluster-application`) | Android cluster UI + BLE client |
+
+![Cluster main screen](docs/image/cluster-main.png)
 
 ## Features
 
@@ -19,53 +21,20 @@ Jetpack Compose Android app that acts as a **phone-based Motorrad cluster**: rec
 - **`VirtualKeyService`** (Accessibility) for virtual key handling from Wonder Wheel paths
 - Can register as **HOME / launcher** (`SplashActivity`)
 - Settings for paired BLE device name / address
-- Optional launch target for Headunit Reloaded (`com.andrerinas.headunitrevived`)
+- Launches / works alongside **Open Headunit** (`com.andrerinas.headunitrevived`) for Android Auto on the bike
 - **TPMS** (Settings → TPMS): external BLE tire-pressure sensors via `TpmsService`
+
+![Settings](docs/image/settings.png)
 
 ## TPMS hardware used
 
-TPMS support follows the official **TPMS 1.0.3** app (`com.zl.dev.tire`) — **Advertise-only**, no GATT connect.
-
-| Item | Detail |
-|---|---|
-| Companion app | TPMS 1.0.3 (Wicarlink) |
-| Transport | BLE Advertise scan (no GATT) |
-| Identity | AD prefix `0201060303B0FB` (Flags + UUID `FBB0`) |
-| Pressure | `raw * 3.144` kPa |
-| Temperature | `raw - 55` °C |
-| Sensor ID | 6-digit hex (e.g. `AABBCC`) |
+![TPMS valve-cap sensors](docs/image/tpms-sensors.png)
 
 Open **Settings → TPMS** to scan sensors, bind Front/Rear IDs, and view pressure & temperature. Uses **`TpmsService`**, separate from ESP32 **`BleService`**.
 
+![TPMS Settings](docs/image/tpms-settings.png)
+
 Protocol notes: [docs/tpms-ble-analysis.md](docs/tpms-ble-analysis.md).
-
-## Architecture
-
-```text
-ESP32 BLE notify (0x180A / 0x2A01)
-        │
-        ▼
-   BleService (foreground)
-        │  broadcasts CAR_STATUS_CHANGED
-        ▼
-   MainActivity / MainScreen (Compose)
-        │
-        ├─ speed, RPM, gear, voltage, ignition, …
-        └─ overlay window (optional)
-
-TPMS Advertise (FBB0 / 0201060303B0FB)
-        │
-        ▼
-   TpmsService (foreground)
-        │  Settings → TPMS screen
-        ▼
-   TpmsSettingActivity
-
-Wonder Wheel / HID / virtual keys
-        │
-        ▼
-   VirtualKeyService (Accessibility)
-```
 
 ## Requirements
 
@@ -101,7 +70,7 @@ Open `src/` in Android Studio for the usual IDE workflow.
 3. In settings, select or save the ESP32 device name and address.
 4. (Optional) Enable **Accessibility → BMW Motorrad Cluster** for `VirtualKeyService`.
 5. (Optional) Set as default home app if you want launcher behavior.
-6. Tune **wheel RPM → speed** factor if indicated speed does not match the bike (default in code ~`0.884`; also stored in preferences).
+6. Tune **wheel RPM → speed** factor if indicated speed does not match the bike (default in code `0.14`; also stored in preferences).
 7. (Optional) In **Settings → TPMS**, scan TPMS sensors and bind Front/Rear IDs.
 
 ## BLE LIN frame parsing
@@ -137,32 +106,6 @@ Speed from ID `0x20` uses the bike factor in `lin_analysis`:
 speed_kmh ≈ rear_wheel_rpm × 0.14
 ```
 
-## Repository layout
-
-```text
-bmw-motorrad-cluster-application/
-├── README.md
-├── README-kr.md
-└── src/                          # Gradle root
-    ├── settings.gradle.kts
-    ├── build.gradle.kts
-    └── app/
-        └── src/main/
-            ├── AndroidManifest.xml
-            └── java/com/dooderge/bmw/motorrad/cluster/
-                ├── MainActivity.kt
-                ├── SplashActivity.kt
-                ├── SettingActivity.kt
-                ├── BleService.kt
-                ├── CarStatus.kt
-                ├── VirtualKeyService.kt
-                ├── SettingPreference.kt
-                ├── tpms/         # TPMS Advertise TPMS
-                ├── launcher/
-                ├── viewmodel/
-                └── ui/           # Compose screens & cluster widgets
-```
-
 ## Related docs
 
 - LIN decode: [LIN_ANALYSIS.md](https://github.com/kendrickkim/bmw-motorrad-cluster-linbus/blob/main/lin_analysis/LIN_ANALYSIS.md)
@@ -171,5 +114,5 @@ bmw-motorrad-cluster-application/
 
 ## Notes
 
-- Designed for use on the bike with a phone mount / Android Auto receiver — ride safely and obey local laws.
+- Intended setup: this cluster UI + **Open Headunit** on a phone mount / AA receiver — ride safely and obey local laws.
 - Overlay and accessibility services need explicit user consent on Android.

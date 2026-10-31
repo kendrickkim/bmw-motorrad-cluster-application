@@ -2,13 +2,15 @@
 
 [English](README.md)
 
-ESP32에서 BLE로 받은 차량 정보를 표시하는 **스마트폰 클러스터** 앱입니다. 속도 / RPM / 기어 / 전압 등을 보여 주며, 가로(reverseLandscape) 홈·런처로도 쓸 수 있고 Android Auto 리시버(예: Headunit Reloaded)와 함께 쓰는 구성을 염두에 둡니다.
+ESP32에서 BLE로 받은 차량 정보를 표시하는 **스마트폰 클러스터** 앱입니다. 속도 / RPM / 기어 / 전압 등을 보여 주며, **[Open Headunit](https://github.com/andreknieriem/open-headunit)**(Android Auto 리시버, 패키지 `com.andrerinas.headunitrevived`)과 **연동해 함께 동작**하도록 설계되었습니다. 가로(reverseLandscape) 홈·런처로도 쓸 수 있습니다.
 
 | 저장소 | 역할 |
 |---|---|
 | [bmw-motorrad-cluster-linbus](https://github.com/kendrickkim/bmw-motorrad-cluster-linbus) | LIN 디코드 문서 |
 | [bmw-motorrad-cluster-esp32](https://github.com/kendrickkim/bmw-motorrad-cluster-esp32) | ESP32 LIN → BLE / HID 펌웨어 |
 | **이 저장소** (`bmw-motorrad-cluster-application`) | Android 클러스터 UI + BLE 클라이언트 |
+
+![클러스터 메인 화면](docs/image/cluster-main.png)
 
 ## 기능
 
@@ -19,53 +21,20 @@ ESP32에서 BLE로 받은 차량 정보를 표시하는 **스마트폰 클러스
 - Wonder Wheel 경로용 **`VirtualKeyService`** (접근성)
 - **HOME / 런처**로 등록 가능 (`SplashActivity`)
 - 페어링 BLE 장치명·주소 설정
-- Headunit Reloaded (`com.andrerinas.headunitrevived`) 연동 대상 포함
+- **Open Headunit** (`com.andrerinas.headunitrevived`)과 연동 — 바이크에서 Android Auto와 함께 동작
 - **TPMS** (설정 → TPMS): 외부 BLE 타이어 공기압 센서 연동 (`TpmsService`)
+
+![설정 화면](docs/image/settings.png)
 
 ## 사용 TPMS 장치
 
-이 앱의 TPMS 기능은 **TPMS 1.0.3** 공식 앱(`com.zl.dev.tire`)과 동일한 **Advertise-only** 프로토콜을 사용한다.
-
-| 항목 | 내용 |
-|---|---|
-| 공식 앱 | TPMS 1.0.3 (Wicarlink) |
-| 통신 | BLE Advertise 스캔 (GATT Connect **없음**) |
-| 식별 | AD 프리픽스 `0201060303B0FB` (Flags + UUID `FBB0`) |
-| 압력 | `raw * 3.144` kPa |
-| 온도 | `raw - 55` °C |
-| 센서 ID | 6자리 hex (예: `AABBCC`) |
+![TPMS 밸브캡 센서](docs/image/tpms-sensors.png)
 
 설정 화면에서 **Settings → TPMS**로 진입해 센서 스캔·ID 바인딩, Front/Rear 압력·온도를 확인한다. ESP32 클러스터 BLE(`BleService`)와는 **별도** 서비스(`TpmsService`)이다.
 
+![TPMS 설정 화면](docs/image/tpms-settings.png)
+
 프로토콜 상세: [docs/tpms-ble-analysis.md](docs/tpms-ble-analysis.md)
-
-## 구조
-
-```text
-ESP32 BLE notify (0x180A / 0x2A01)
-        │
-        ▼
-   BleService (포그라운드)
-        │  CAR_STATUS_CHANGED 브로드캐스트
-        ▼
-   MainActivity / MainScreen (Compose)
-        │
-        ├─ 속도, RPM, 기어, 전압, 이그니션, …
-        └─ 오버레이 (선택)
-
-TPMS Advertise (FBB0 / 0201060303B0FB)
-        │
-        ▼
-   TpmsService (포그라운드)
-        │  Settings → TPMS 설정 화면
-        ▼
-   TpmsSettingActivity
-
-Wonder Wheel / HID / 가상 키
-        │
-        ▼
-   VirtualKeyService (접근성)
-```
 
 ## 요구 사항
 
@@ -99,7 +68,7 @@ gradlew.bat :app:assembleDebug
 3. 설정에서 ESP32 장치명·주소를 저장합니다.
 4. (선택) **접근성 → BMW Motorrad Cluster** 활성화.
 5. (선택) 기본 홈 앱으로 지정.
-6. 표시 속도가 다르면 **휠 RPM → 속도** 계수를 조정합니다 (코드 기본값 약 `0.884`).
+6. 표시 속도가 다르면 **휠 RPM → 속도** 계수를 조정합니다 (코드 기본값 `0.14`).
 7. (선택) **Settings → TPMS**에서 TPMS 센서를 스캔하고 Front/Rear ID를 바인딩합니다.
 
 ## BLE LIN 프레임 파싱
@@ -133,23 +102,6 @@ ID `0x20` 속도는 `lin_analysis`의 고정 계수를 씁니다.
 speed_kmh ≈ rear_wheel_rpm × 0.14
 ```
 
-## 저장소 구성
-
-```text
-bmw-motorrad-cluster-application/
-├── README.md
-├── README-kr.md
-└── src/                          # Gradle 루트
-    └── app/src/main/java/.../
-        ├── MainActivity.kt
-        ├── BleService.kt
-        ├── CarStatus.kt
-        ├── SettingActivity.kt
-        ├── tpms/                 # TPMS Advertise TPMS
-        ├── launcher/
-        └── ui/
-```
-
 ## 관련 문서
 
 - LIN 분석: [LIN_ANALYSIS.md](https://github.com/kendrickkim/bmw-motorrad-cluster-linbus/blob/main/lin_analysis/LIN_ANALYSIS.md)
@@ -158,5 +110,5 @@ bmw-motorrad-cluster-application/
 
 ## 참고
 
-- 주행 중에는 안전이 우선입니다. 현지 법규를 지키세요.
+- 권장 구성: 이 클러스터 UI + **Open Headunit**. 주행 중에는 안전이 우선이며 현지 법규를 지키세요.
 - 오버레이·접근성 서비스는 사용자가 명시적으로 허용해야 합니다.
