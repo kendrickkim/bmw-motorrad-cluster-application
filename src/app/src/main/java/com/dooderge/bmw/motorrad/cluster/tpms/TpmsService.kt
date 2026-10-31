@@ -50,6 +50,7 @@ class TpmsService : Service() {
         const val EXTRA_FRONT_BATTERY = "frontBattery"
         const val EXTRA_REAR_BATTERY = "rearBattery"
         const val EXTRA_UNIT = "unit"
+        const val EXTRA_LAST_READ_AT = "lastReadAt"
         const val EXTRA_KEEP_CONNECTED = "keepConnected"
 
         private const val CHANNEL_ID = "tpms_channel"
@@ -101,6 +102,12 @@ class TpmsService : Service() {
     @Volatile
     var latestState: TpmsDeviceState = TpmsDeviceState()
         private set
+
+    fun updateDisplayUnit(unit: TpmsPressureUnit) {
+        latestState = latestState.copy(displayUnit = unit)
+        broadcastState(latestState)
+        updateNotification(latestState)
+    }
 
     override fun onBind(intent: Intent?): IBinder = binder
 
@@ -441,6 +448,7 @@ class TpmsService : Service() {
             it.putExtra(EXTRA_FRONT_BATTERY, state.front.battery)
             it.putExtra(EXTRA_REAR_BATTERY, state.rear.battery)
             it.putExtra(EXTRA_UNIT, state.displayUnit.label)
+            it.putExtra(EXTRA_LAST_READ_AT, SettingPreference.getTpmsLastReadAt(this))
             sendBroadcast(it)
         }
     }

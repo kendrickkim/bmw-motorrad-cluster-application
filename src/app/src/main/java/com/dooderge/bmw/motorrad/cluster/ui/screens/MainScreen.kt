@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
@@ -40,7 +39,6 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Density
@@ -51,6 +49,7 @@ import androidx.compose.ui.unit.sp
 import com.dooderge.bmw.motorrad.cluster.CarStatus
 import com.dooderge.bmw.motorrad.cluster.R
 import com.dooderge.bmw.motorrad.cluster.SettingPreference
+import com.dooderge.bmw.motorrad.cluster.ui.component.ClusterFixedFontScale
 import com.dooderge.bmw.motorrad.cluster.ui.component.ClusterSpeedRpm
 import com.dooderge.bmw.motorrad.cluster.ui.component.ClusterText
 import com.dooderge.bmw.motorrad.cluster.ui.component.ComponentGearIndicator
@@ -58,16 +57,16 @@ import com.dooderge.bmw.motorrad.cluster.ui.component.sections.SectionDistance
 import com.dooderge.bmw.motorrad.cluster.ui.component.designedDp
 import com.dooderge.bmw.motorrad.cluster.ui.component.pxToDp
 import com.dooderge.bmw.motorrad.cluster.ui.component.sections.SectionApps
-import com.dooderge.bmw.motorrad.cluster.ui.component.sections.SectionCoolantTemp
 import com.dooderge.bmw.motorrad.cluster.ui.component.sections.SectionFuelGuage
+import com.dooderge.bmw.motorrad.cluster.ui.component.sections.SectionLeanAngle
 import com.dooderge.bmw.motorrad.cluster.ui.component.sections.SectionStatus
-import com.dooderge.bmw.motorrad.cluster.ui.component.sections.SectionTime
-import com.dooderge.bmw.motorrad.cluster.ui.component.sections.SectionTirePressure
-import com.dooderge.bmw.motorrad.cluster.ui.component.sections.SectionVoltage
-// DO NOT DELETE — SectionDirection import (슬롯은 Trip으로 임시 교체, 재사용 예정)
 import com.dooderge.bmw.motorrad.cluster.ui.component.sections.SectionDirection
+import com.dooderge.bmw.motorrad.cluster.ui.component.sections.SectionTirePressure
+import com.dooderge.bmw.motorrad.cluster.ui.component.sections.SectionVoltageCoolant
 import com.dooderge.bmw.motorrad.cluster.ui.component.setDesignedSizeByWidth
 import com.dooderge.bmw.motorrad.cluster.ui.component.setDesginedSizeByHeight
+import com.dooderge.bmw.motorrad.cluster.ui.theme.ClusterBackgroundRes
+import com.dooderge.bmw.motorrad.cluster.ui.theme.ClusterSectionTitleColor
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -186,7 +185,7 @@ fun MainScreen(
 
                 android.graphics.BitmapFactory.decodeResource(
                     context.resources,
-                    R.drawable.cluster_background_black,
+                    ClusterBackgroundRes,
                     options
                 )
 
@@ -231,12 +230,7 @@ fun MainScreen(
 
     }
 
-    CompositionLocalProvider(
-        LocalDensity provides Density(
-            density = LocalDensity.current.density,
-            fontScale = 1f
-        )
-    ) {
+    ClusterFixedFontScale {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -306,7 +300,7 @@ fun MainScreen(
                     {
                         Image(
                             contentDescription = "Cluster Background",
-                            painter = painterResource(id = R.drawable.cluster_background_black),
+                            painter = painterResource(id = ClusterBackgroundRes),
                             modifier = Modifier
                                 .fillMaxSize()
                         )
@@ -346,35 +340,6 @@ fun MainScreen(
                             .fillMaxSize()
                     )
                     {
-                        @Composable
-                        fun SectionText(
-                            text: String,
-                            padding: PaddingValues,
-                            align: Alignment = Alignment.TopStart
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(padding),
-                                contentAlignment = align
-                            )
-                            {
-                                Text(
-                                    text = text,
-                                    fontSize = 17.sp,
-                                    color = Color(0xff4b4b4b),
-                                    fontWeight = FontWeight.ExtraBold,
-                                )
-                            }
-                        }
-
-
-                        data class SectionInfo(
-                            val text: String,
-                            val padding: PaddingValues,
-                            val alignment: Alignment = Alignment.TopStart
-                        )
-
                         val top1 = 162.designedDp()
                         val top2 = 456.designedDp()
                         val top3 = 749.designedDp()
@@ -383,57 +348,50 @@ fun MainScreen(
                         val right1 = 19.designedDp()
                         val right2 = 421.designedDp()
 
-                        val status = arrayOf(
-                            SectionInfo(
-                                "Distance",
-                                PaddingValues(start = left, top = top1),
-                            ),
-                            SectionInfo(
-                                "Range",
-                                PaddingValues(end = right1, top = top1),
-                                Alignment.TopEnd
-                            ),
-                            // 구 Direction 슬롯 → Trip 표시 (Direction UI는 삭제하지 말 것)
-                            SectionInfo(
-                                "Trip",
-                                PaddingValues(end = right2, top = top1),
-                                Alignment.TopEnd
-                            ),
+                        val sectionTitles = remember(top1, top2, top3, left, left1, right1, right2) {
+                            listOf(
+                                SectionTitleInfo("Distance", PaddingValues(start = left, top = top1)),
+                                SectionTitleInfo(
+                                    "Range",
+                                    PaddingValues(end = right1, top = top1),
+                                    Alignment.TopEnd
+                                ),
+                                SectionTitleInfo(
+                                    "Direction",
+                                    PaddingValues(end = right2, top = top1),
+                                    Alignment.TopEnd
+                                ),
+                                // 구 Status 슬롯 → Voltage / EngTemp 제목
+                                SectionTitleInfo(
+                                    "Voltage / Engine Temp.",
+                                    PaddingValues(start = left, top = top2)
+                                ),
+                                // 구 Fuel Guage 슬롯 → Tire Pressure 표시
+                                SectionTitleInfo(
+                                    "Tire Pressure",
+                                    PaddingValues(end = right1, top = top2),
+                                    Alignment.TopEnd
+                                ),
+                                // 구 Voltage 슬롯 → Status
+                                SectionTitleInfo(
+                                    "Status",
+                                    PaddingValues(start = left, top = top3)
+                                ),
+                                // 구 Eng Temp. 슬롯 → Lean Angle
+                                SectionTitleInfo(
+                                    "Lean Angle",
+                                    PaddingValues(start = left1, top = top3)
+                                ),
+                                SectionTitleInfo(
+                                    "Apps",
+                                    PaddingValues(end = right1, top = top3),
+                                    Alignment.TopEnd
+                                ),
+                            )
+                        }
 
-                            SectionInfo(
-                                "Status",
-                                PaddingValues(start = left, top = top2),
-                                Alignment.TopStart
-                            ),
-                            // 구 Fuel Guage 슬롯 → Tire Pressure 표시
-                            SectionInfo(
-                                "Tire Pressure",
-                                PaddingValues(end = right1, top = top2),
-                                Alignment.TopEnd
-                            ),
-
-
-                            SectionInfo(
-                                "Voltage",
-                                PaddingValues(start = left, top = top3),
-                                Alignment.TopStart
-                            ),
-                            SectionInfo(
-                                "Eng Temp.",
-                                PaddingValues(start = left1, top = top3),
-                                Alignment.TopStart
-                            ),
-
-                            SectionInfo(
-                                "Apps",
-                                PaddingValues(end = right1, top = top3),
-                                Alignment.TopEnd
-                            ),
-
-                        )
-
-                        status.forEach { s ->
-                            SectionText(
+                        sectionTitles.forEach { s ->
+                            ClusterSectionTitle(
                                 text = s.text,
                                 padding = s.padding,
                                 align = s.alignment
@@ -453,59 +411,45 @@ fun MainScreen(
                             SectionDistance(
                                 modifier = Modifier
                                     .padding(start = 60.designedDp(), top = 232.designedDp())
-                                    .size(554.designedDp(), 161.designedDp()),
+                                    .size(620.designedDp(), 260.designedDp()),
                                 carStatus = carStatus
                             )
 
-                            SectionStatus(
+                            // 구 Status 슬롯 → Voltage / Eng Temp 값
+                            SectionVoltageCoolant(
                                 modifier = Modifier
                                     .padding(start = 30.designedDp(), top = 524.designedDp())
-                                    .size(554.designedDp(), 161.designedDp()),
+                                    .size(574.designedDp(), 161.designedDp()),
+                                carStatus = carStatus,
+                            )
+
+                            // 구 Voltage 슬롯 → Status (아이콘 50%)
+                            SectionStatus(
+                                modifier = Modifier
+                                    .padding(start = 40.designedDp() - 5.dp, top = 822.designedDp())
+                                    .size(316.designedDp(), 161.designedDp()),
                                 carStatus = carStatus,
                                 onEngineClick = onEngineClick
                             )
 
-                            SectionVoltage(
-                                modifier = Modifier
-                                    .padding(start = 40.designedDp(), top = 822.designedDp())
-                                    .size(316.designedDp(), 161.designedDp()),
-                                carStatus = carStatus,
-                            )
-
-                            SectionCoolantTemp(
+                            // 구 Eng Temp. 슬롯 → Lean Angle (placeholder 0°)
+                            SectionLeanAngle(
                                 modifier = Modifier
                                     .padding(start = 453.designedDp(), top = 822.designedDp())
-                                    .size(226.designedDp(), 161.designedDp()),
-                                carStatus = carStatus,
+                                    .size(226.designedDp() + 10.dp, 161.designedDp()),
                             )
                         }
 
                         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopEnd)
                         {
 
-                            SectionTime(
+                            SectionDirection(
                                 modifier = Modifier
                                     .padding(end = 433.designedDp(), top = 232.designedDp())
                                     .size(226.designedDp(), 161.designedDp()),
                                 carStatus = carStatus,
                                 alignment = Alignment.TopEnd
                             )
-
-                            /*
-                             * =====================================================================
-                             * DO NOT DELETE — SectionDirection (나침반/헤딩)
-                             * 다른 에이전트: 아래 블록을 제거하지 말 것. 슬롯만 Trip으로 임시 교체.
-                             * 파일: ui/component/sections/SectionDirection.kt 도 유지.
-                             * =====================================================================
-                             *
-                             * SectionDirection(
-                             *     modifier = Modifier
-                             *         .padding(end = 433.designedDp(), top = 232.designedDp())
-                             *         .size(226.designedDp(), 161.designedDp()),
-                             *     carStatus = carStatus,
-                             *     alignment = Alignment.TopEnd
-                             * )
-                             */
 
                             // 구 Time 슬롯 → Range
                             SectionFuelGuage(
@@ -641,4 +585,32 @@ fun HeaderSection(
     }
 }
 
+/** 섹션 제목 배치 정보. */
+private data class SectionTitleInfo(
+    val text: String,
+    val padding: PaddingValues,
+    val alignment: Alignment = Alignment.TopStart,
+)
 
+/** 클러스터 섹션 라벨(Distance, Status 등). */
+@Composable
+private fun ClusterSectionTitle(
+    text: String,
+    padding: PaddingValues,
+    align: Alignment = Alignment.TopStart,
+    color: Color = ClusterSectionTitleColor,
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(padding),
+        contentAlignment = align
+    ) {
+        Text(
+            text = text,
+            fontSize = 17.sp,
+            color = color,
+            fontWeight = FontWeight.ExtraBold,
+        )
+    }
+}

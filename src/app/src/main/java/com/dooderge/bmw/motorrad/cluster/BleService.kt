@@ -22,6 +22,9 @@ import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
+import android.text.SpannableString
+import android.text.Spanned
+import android.text.style.ForegroundColorSpan
 import android.view.Gravity
 import android.view.InputDevice
 import android.view.MotionEvent
@@ -32,11 +35,13 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.annotation.RequiresPermission
+import androidx.compose.ui.graphics.toArgb
 import androidx.core.app.NotificationCompat
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.widget.TextViewCompat
 import com.dooderge.bmw.motorrad.cluster.tpms.TpmsPressureUnit
 import com.dooderge.bmw.motorrad.cluster.tpms.TpmsProtocol
+import com.dooderge.bmw.motorrad.cluster.ui.theme.ClusterAccentColor
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
@@ -96,6 +101,28 @@ class BleService : Service() {
             service.mainHandler.post { service.rebuildOverlay() }
         }
 
+        fun setGpsLogging(enabled: Boolean) {
+            val service = instance ?: return
+            service.mainHandler.post {
+                if (enabled) service.gpsTrackRecorder.start()
+                else service.gpsTrackRecorder.stop()
+            }
+        }
+
+        /** 설정 LIN Logging 토글 — prefs는 호출 측에서 저장. */
+        fun setLinLogging(enabled: Boolean) {
+            val service = instance ?: return
+            service.mainHandler.post {
+                if (enabled) {
+                    if (!service.linDataLogger.start()) {
+                        service.toast("Could not create the log file")
+                    }
+                } else {
+                    service.linDataLogger.stop()
+                }
+            }
+        }
+
         /** 엔진 롱프레스 등 — 다른 액티비티가 떠 있어도 서비스에서 계속 재생. */
         fun toggleLinCapture() {
             instance?.toggleLinCaptureInternal()
@@ -108,7 +135,6 @@ class BleService : Service() {
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS")
 
         private const val SIM_TIRE_PRESSURE = "100.0"
-        private const val SIM_TIRE_META = "99.8 °C"
     }
 
     private data class CompactOverlay(
@@ -167,8 +193,12 @@ class BleService : Service() {
 
         // read wheel RPM to speed factor from settings
         WHEEL_RPM_TO_SPEED = SettingPreference.getWheelRpmToSpeedFactor(this)
+        SettingPreference.restoreLastOdometer(this, currentCarStatus)
         if (SettingPreference.isLinLogging(this)) {
             linDataLogger.start()
+        }
+        if (SettingPreference.isGpsLogging(this)) {
+            gpsTrackRecorder.start()
         }
 
         // 오버레이 생성 (View 기반)
@@ -327,7 +357,7 @@ class BleService : Service() {
             }
             val unitView = TextView(this).apply {
                 text = unit
-                setTextColor(Color.WHITE)
+                setTextColor(ClusterAccentColor.toArgb())
                 textSize = unitSizeSp
                 includeFontPadding = false
                 setPadding(dpToPx(4), 0, 0, dpToPx(4))
@@ -549,18 +579,26 @@ class BleService : Service() {
         ui.gear.setImageResource(getResourceIdByGearNo(status.gear.value))
         ui.speed.text = "${status.speed.value} "
         ui.rpm.text = "${status.rpm.value} "
-        ui.voltage.text = String.format("%.1f v", status.voltage.value / 10.0)
-        ui.distance.text = "${status.odometerKm.value} km"
-        // ui.coolant.text = String.format("%.1f°C", status.coolant_temperature.value / 10.0)
-        ui.coolant.text = String.format("%d°C", status.coolant_temperature.value / 10)
-        ui.range.text = "${status.fuelRangeKm.value} km"
+        ui.voltage.text = overlayValueWithUnit(
+            String.format("%.1f", status.voltage.value / 10.0),
+            " v"
+        )
+        val odometerKm = status.odometerKm.value.takeIf { it > 0 }
+            ?: SettingPreference.getLastOdometerKm(this)
+        ui.distance.text = overlayValueWithUnit("$odometerKm", " km")
+        ui.coolant.text = overlayValueWithUnit(
+            "${status.coolant_temperature.value / 10}",
+            "°C"
+        )
+        ui.range.text = overlayValueWithUnit("${status.fuelRangeKm.value}", " km")
 
+        val detailGray = Color.rgb(0x80, 0x80, 0x80)
         if (status.linCapturePlaying.value) {
             // 메인 시뮬레이션(SectionTirePressure)과 동일 표시
             ui.frontPressure.text = SIM_TIRE_PRESSURE
             ui.rearPressure.text = SIM_TIRE_PRESSURE
-            ui.frontDetail.text = SIM_TIRE_META
-            ui.rearDetail.text = SIM_TIRE_META
+            ui.frontDetail.text = overlayValueWithUnit("99.8", " °C", detailGray)
+            ui.rearDetail.text = overlayValueWithUnit("99.8", " °C", detailGray)
         } else {
             val unit = SettingPreference.getTpmsUnit(this)
             val frontRaw = SettingPreference.getTpmsLastFrontPressure(this)
@@ -569,8 +607,31 @@ class BleService : Service() {
             val rearTemp = SettingPreference.getTpmsLastRearTemp(this)
             ui.frontPressure.text = formatOverlayPressure(frontRaw, unit)
             ui.rearPressure.text = formatOverlayPressure(rearRaw, unit)
-            ui.frontDetail.text = formatOverlayTireTemp(frontTemp)
-            ui.rearDetail.text = formatOverlayTireTemp(rearTemp)
+            ui.frontDetail.text = formatOverlayTireTemp(frontTemp, detailGray)
+            ui.rearDetail.text = formatOverlayTireTemp(rearTemp, detailGray)
+        }
+    }
+
+    /** 수치(기본 흰색) + 단위(ClusterAccentColor) */
+    private fun overlayValueWithUnit(
+        value: String,
+        unit: String,
+        valueColor: Int = Color.WHITE,
+    ): CharSequence {
+        val full = value + unit
+        return SpannableString(full).apply {
+            setSpan(
+                ForegroundColorSpan(valueColor),
+                0,
+                value.length,
+                Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+            )
+            setSpan(
+                ForegroundColorSpan(ClusterAccentColor.toArgb()),
+                value.length,
+                full.length,
+                Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+            )
         }
     }
 
@@ -582,8 +643,9 @@ class BleService : Service() {
             .ifBlank { "--" }
     }
 
-    private fun formatOverlayTireTemp(tempC: Int): String {
-        return if (tempC < 0) "-- °C" else "$tempC °C"
+    private fun formatOverlayTireTemp(tempC: Int, valueColor: Int): CharSequence {
+        val value = if (tempC < 0) "--" else "$tempC"
+        return overlayValueWithUnit(value, " °C", valueColor)
     }
 
     var currentCarStatus = CarStatus()
@@ -653,6 +715,7 @@ class BleService : Service() {
 
                 if (data.size == LinFrame.LENGTH) {
                     LinFrame.apply(data, currentCarStatus)
+                    SettingPreference.noteOdometerKm(this@BleService, currentCarStatus.odometerKm.value)
                 } else if (data.size >= 12) {
                     applyPackedCarStatus(data)
                 } else {
@@ -882,6 +945,7 @@ class BleService : Service() {
     }
 
     private val linDataLogger = LinDataLogger(this)
+    private val gpsTrackRecorder = GpsTrackRecorder(this) { currentCarStatus.speed.value }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
@@ -922,6 +986,7 @@ class BleService : Service() {
         connectTimer?.cancel()
         connectTimer = null
         linDataLogger.release()
+        gpsTrackRecorder.stop()
         if (instance == this) instance = null
         super.onDestroy()
         if (overlayView != null) windowManager?.removeView(overlayView)

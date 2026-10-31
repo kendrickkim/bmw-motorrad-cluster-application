@@ -1,15 +1,12 @@
 package com.dooderge.bmw.motorrad.cluster
 
+import com.dooderge.bmw.motorrad.cluster.ui.component.applyClusterImmersiveMode
+
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
-import android.content.BroadcastReceiver
-import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
-import android.os.Build
 import android.os.Bundle
-import android.view.View
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.border
@@ -23,30 +20,17 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.dooderge.bmw.motorrad.cluster.tpms.TpmsSettingActivity
-
-private val SettingsColorScheme = darkColorScheme(
-    primary = Color(0xFF4376A1),
-    onPrimary = Color.White,
-    primaryContainer = Color(0xFF4376A1),
-    onPrimaryContainer = Color.White,
-    secondary = Color(0xFF4376A1),
-    onSecondary = Color.White,
-    secondaryContainer = Color(0xFF2C4F6B),
-    tertiary = Color(0xFF4376A1),
-    background = Color.Black,
-    surface = Color.Black,
-    onBackground = Color.White,
-    onSurface = Color.White,
-    outline = Color(0xFF4376A1)
-)
+import com.dooderge.bmw.motorrad.cluster.ui.component.ClusterFixedFontScale
+import com.dooderge.bmw.motorrad.cluster.ui.component.ClusterSideActionButton
+import com.dooderge.bmw.motorrad.cluster.ui.component.ClusterTwoPaneScaffold
+import com.dooderge.bmw.motorrad.cluster.ui.theme.ClusterSettingsColorScheme
+import com.dooderge.bmw.motorrad.cluster.ui.theme.clusterSwitchColors
 
 class SettingActivity : ComponentActivity() {
     private val showSpeedGearOverlay = mutableStateOf(false)
@@ -80,25 +64,10 @@ class SettingActivity : ComponentActivity() {
             var largeOverlayEnabled by remember {
                 mutableStateOf(SettingPreference.isLargeOverlay(this))
             }
-
-            DisposableEffect(Unit) {
-                val receiver = object : BroadcastReceiver() {
-                    override fun onReceive(context: Context?, intent: Intent?) {
-                        linLogging = intent?.getBooleanExtra(
-                            BleService.EXTRA_LIN_LOGGING,
-                            false
-                        ) == true
-                    }
-                }
-                val filter = IntentFilter(BleService.ACTION_LIN_LOG_STATE)
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
-                } else {
-                    @Suppress("DEPRECATION")
-                    registerReceiver(receiver, filter)
-                }
-                onDispose { unregisterReceiver(receiver) }
+            var gpsLogging by remember {
+                mutableStateOf(SettingPreference.isGpsLogging(this))
             }
+
             // Speed Factor UI 비활성 — 필요 시 복원
             // var strSpeedFactor by remember {
             //     mutableStateOf(
@@ -118,39 +87,18 @@ class SettingActivity : ComponentActivity() {
                 }
             }
 
-            CompositionLocalProvider(
-                LocalDensity provides Density(
-                    density = LocalDensity.current.density,
-                    fontScale = 1f
-                )
-            ) {
-                MaterialTheme(colorScheme = SettingsColorScheme) {
+            ClusterFixedFontScale {
+                MaterialTheme(colorScheme = ClusterSettingsColorScheme) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = Color.Black
                 ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(20.dp)
-                    ) {
-                        Text(
-                            text = "Settings",
-                            fontSize = 22.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                        )
-                        Row(
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxWidth()
-                                .padding(top = 12.dp),
-                            horizontalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
+                    ClusterTwoPaneScaffold(
+                        title = "Settings",
+                        content = {
                             Column(
                                 modifier = Modifier
-                                    .weight(1f)
-                                    .fillMaxHeight()
+                                    .fillMaxSize()
                                     .verticalScroll(rememberScrollState()),
                                 verticalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
@@ -214,15 +162,11 @@ class SettingActivity : ComponentActivity() {
                                 //         )
                                 //     )
                                 // }
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text(
-                                        text = "LIN Test",
-                                        fontSize = 18.sp,
-                                        fontWeight = FontWeight.ExtraBold,
-                                        color = Color.White,
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                    Switch(
+                                Column(
+                                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                                ) {
+                                    SettingSwitchRow(
+                                        label = "LIN Test",
                                         checked = linTestEnabled,
                                         onCheckedChange = {
                                             linTestEnabled = it
@@ -230,50 +174,18 @@ class SettingActivity : ComponentActivity() {
                                                 this@SettingActivity,
                                                 it
                                             )
-                                        },
-                                        colors = SwitchDefaults.colors(
-                                            checkedThumbColor = Color.White,
-                                            checkedTrackColor = Color(0xFF4376A1),
-                                            checkedBorderColor = Color(0xFF4376A1),
-                                            uncheckedThumbColor = Color(0xFFAAAAAA),
-                                            uncheckedTrackColor = Color(0xFF333333),
-                                            uncheckedBorderColor = Color(0xFF666666)
-                                        )
+                                        }
                                     )
-                                }
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text(
-                                        text = "Speed / Gear Overlay",
-                                        fontSize = 18.sp,
-                                        fontWeight = FontWeight.ExtraBold,
-                                        color = Color.White,
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                    Switch(
+                                    SettingSwitchRow(
+                                        label = "Speed / Gear Overlay",
                                         checked = showSpeedGearOverlay.value,
                                         onCheckedChange = { checked ->
                                             showSpeedGearOverlay.value = checked
                                             BleService.setOverlayPreview(checked)
-                                        },
-                                        colors = SwitchDefaults.colors(
-                                            checkedThumbColor = Color.White,
-                                            checkedTrackColor = Color(0xFF4376A1),
-                                            checkedBorderColor = Color(0xFF4376A1),
-                                            uncheckedThumbColor = Color(0xFFAAAAAA),
-                                            uncheckedTrackColor = Color(0xFF333333),
-                                            uncheckedBorderColor = Color(0xFF666666)
-                                        )
+                                        }
                                     )
-                                }
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text(
-                                        text = "Use Large Overlay",
-                                        fontSize = 18.sp,
-                                        fontWeight = FontWeight.ExtraBold,
-                                        color = Color.White,
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                    Switch(
+                                    SettingSwitchRow(
+                                        label = "Use Large Overlay",
                                         checked = largeOverlayEnabled,
                                         onCheckedChange = { checked ->
                                             largeOverlayEnabled = checked
@@ -282,34 +194,32 @@ class SettingActivity : ComponentActivity() {
                                                 checked
                                             )
                                             BleService.setLargeOverlay(checked)
-                                        },
-                                        colors = SwitchDefaults.colors(
-                                            checkedThumbColor = Color.White,
-                                            checkedTrackColor = Color(0xFF4376A1),
-                                            checkedBorderColor = Color(0xFF4376A1),
-                                            uncheckedThumbColor = Color(0xFFAAAAAA),
-                                            uncheckedTrackColor = Color(0xFF333333),
-                                            uncheckedBorderColor = Color(0xFF666666)
-                                        )
+                                        }
                                     )
-                                }
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    SettingLabel("Data Log")
-                                    Button(
-                                        onClick = { requestLinLog(!linLogging) },
-                                        modifier = Modifier.height(56.dp),
-                                        shape = RoundedCornerShape(10.dp),
-                                        colors = ButtonDefaults.buttonColors(
-                                            containerColor = Color.White,
-                                            contentColor = Color.Black
-                                        )
-                                    ) {
-                                        Text(
-                                            text = if (linLogging) "Stop logging" else "Start logging",
-                                            fontSize = 18.sp,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    }
+                                    SettingSwitchRow(
+                                        label = "GPS Logging",
+                                        checked = gpsLogging,
+                                        onCheckedChange = { checked ->
+                                            gpsLogging = checked
+                                            SettingPreference.setGpsLogging(
+                                                this@SettingActivity,
+                                                checked
+                                            )
+                                            BleService.setGpsLogging(checked)
+                                        }
+                                    )
+                                    SettingSwitchRow(
+                                        label = "LIN Logging",
+                                        checked = linLogging,
+                                        onCheckedChange = { checked ->
+                                            linLogging = checked
+                                            SettingPreference.setLinLogging(
+                                                this@SettingActivity,
+                                                checked
+                                            )
+                                            BleService.setLinLogging(checked)
+                                        }
+                                    )
                                 }
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     SettingLabel("TPMS")
@@ -336,50 +246,86 @@ class SettingActivity : ComponentActivity() {
                                         )
                                     }
                                 }
-                            }
-                            Column(
-                                modifier = Modifier
-                                    .weight(0.22f)
-                                    .fillMaxHeight(),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                SettingActionButton(
-                                    label = "Save",
-                                    modifier = Modifier.weight(1f),
-                                    onClick = {
-                                        SettingPreference.saveSettings(
-                                            context = this@SettingActivity,
-                                            deviceName = selectedDeviceName,
-                                            address = selectedDeviceAddress
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    SettingLabel("View Log")
+                                    Button(
+                                        onClick = {
+                                            startActivity(
+                                                LogListActivity.intent(
+                                                    this@SettingActivity,
+                                                    LogKind.LIN
+                                                )
+                                            )
+                                        },
+                                        modifier = Modifier.height(56.dp),
+                                        shape = RoundedCornerShape(10.dp),
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = Color.White,
+                                            contentColor = Color.Black
                                         )
-                                        // SettingPreference.setWheelRpmToSpeedFactor(
-                                        //     context = this@SettingActivity,
-                                        //     factor = strSpeedFactor.toFloatOrNull() ?: 1.0f
-                                        // )
-                                        // BleService.WHEEL_RPM_TO_SPEED =
-                                        //     SettingPreference.getWheelRpmToSpeedFactor(this@SettingActivity)
-                                        finish()
+                                    ) {
+                                        Text(
+                                            text = "LIN",
+                                            fontSize = 18.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
                                     }
-                                )
-                                SettingActionButton(
-                                    label = "Cancel",
-                                    modifier = Modifier.weight(1f),
-                                    onClick = { finish() }
-                                )
-                                SettingActionButton(
-                                    label = "Reset",
-                                    modifier = Modifier.weight(1f),
-                                    onClick = {
-                                        selectedDeviceName = ""
-                                        selectedDeviceAddress = ""
-                                        // strSpeedFactor =
-                                        //     SettingPreference.getWheelRpmToSpeedFactor(this@SettingActivity)
-                                        //         .toString()
+                                    Button(
+                                        onClick = {
+                                            startActivity(
+                                                LogListActivity.intent(
+                                                    this@SettingActivity,
+                                                    LogKind.GPS
+                                                )
+                                            )
+                                        },
+                                        modifier = Modifier.height(56.dp),
+                                        shape = RoundedCornerShape(10.dp),
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = Color.White,
+                                            contentColor = Color.Black
+                                        )
+                                    ) {
+                                        Text(
+                                            text = "GPS",
+                                            fontSize = 18.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
                                     }
-                                )
+                                }
                             }
+                        },
+                        sideActions = {
+                            ClusterSideActionButton(
+                                label = "Save",
+                                modifier = Modifier.weight(1f),
+                                onClick = {
+                                    SettingPreference.saveSettings(
+                                        context = this@SettingActivity,
+                                        deviceName = selectedDeviceName,
+                                        address = selectedDeviceAddress
+                                    )
+                                    finish()
+                                }
+                            )
+                            ClusterSideActionButton(
+                                label = "Cancel",
+                                modifier = Modifier.weight(1f),
+                                onClick = { finish() }
+                            )
+                            ClusterSideActionButton(
+                                label = "Reset",
+                                modifier = Modifier.weight(1f),
+                                onClick = {
+                                    selectedDeviceName = ""
+                                    selectedDeviceAddress = ""
+                                }
+                            )
                         }
-                    }
+                    )
                     if (showDialog) {
                         AlertDialog(
                             onDismissRequest = { showDialog = false },
@@ -434,17 +380,7 @@ class SettingActivity : ComponentActivity() {
         }
     }
 
-    private fun requestLinLog(start: Boolean) {
-        val intent = Intent(this, BleService::class.java).apply {
-            action = if (start) BleService.ACTION_START_LIN_LOG else BleService.ACTION_STOP_LIN_LOG
-        }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            startForegroundService(intent)
-        } else {
-            startService(intent)
-        }
-    }
-
+    /** 설정 행 라벨(고정 폭). */
     @Composable
     private fun SettingLabel(text: String) {
         Text(
@@ -456,25 +392,28 @@ class SettingActivity : ComponentActivity() {
         )
     }
 
+    /** 라벨 + Switch 한 줄(토글 블록 전용 좁은 행 높이). */
     @Composable
-    private fun SettingActionButton(
+    private fun SettingSwitchRow(
         label: String,
-        modifier: Modifier = Modifier,
-        onClick: () -> Unit
+        checked: Boolean,
+        onCheckedChange: (Boolean) -> Unit,
     ) {
-        Button(
-            onClick = onClick,
-            modifier = modifier.fillMaxSize(),
-            shape = RoundedCornerShape(10.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xff333333),
-                contentColor = Color.White
-            )
+        Row(
+            modifier = Modifier.height(40.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
                 text = label,
                 fontSize = 18.sp,
-                fontWeight = FontWeight.ExtraBold
+                fontWeight = FontWeight.ExtraBold,
+                color = Color.White,
+                modifier = Modifier.weight(1f)
+            )
+            Switch(
+                checked = checked,
+                onCheckedChange = onCheckedChange,
+                colors = clusterSwitchColors()
             )
         }
     }
@@ -487,13 +426,6 @@ class SettingActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        window.decorView.systemUiVisibility = (
-                View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-                        or View.SYSTEM_UI_FLAG_FULLSCREEN
-                        or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                        or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                        or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                        or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                )
+        window.applyClusterImmersiveMode()
     }
 } 

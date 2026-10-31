@@ -47,7 +47,9 @@ data class CarStatus(
     var tripStartedAtMillis: MutableState<Long> = mutableStateOf(0L),
     var tripBaseOdometerKm: MutableState<Int> = mutableStateOf(0),
     var tripBaseLatched: MutableState<Boolean> = mutableStateOf(false),
-    /** TripB — 시동과 무관하게 유지되는 트립 기준 적산거리 */
+    /** TripA/B — 시동과 무관, 수동 리셋 시 현재 오도메터를 기준으로 잡는다 */
+    var tripABaseOdometerKm: MutableState<Int> = mutableStateOf(0),
+    var tripABaseLatched: MutableState<Boolean> = mutableStateOf(false),
     var tripBBaseOdometerKm: MutableState<Int> = mutableStateOf(0),
     var tripBBaseLatched: MutableState<Boolean> = mutableStateOf(false),
     /** TPMS — SettingPreference / TpmsService 로부터 MainActivity가 갱신 */
@@ -62,7 +64,9 @@ data class CarStatus(
     var tpmsPressureMinKpa: MutableState<Int> = mutableStateOf(180),
     var tpmsPressureMaxKpa: MutableState<Int> = mutableStateOf(320),
     var tpmsConnection: MutableState<String> = mutableStateOf("DISCONNECTED"),
-    var tpmsStatusMessage: MutableState<String> = mutableStateOf("")
+    var tpmsStatusMessage: MutableState<String> = mutableStateOf(""),
+    /** TPMS 마지막 수신 epoch ms. 0이면 미수신 */
+    var tpmsLastReadAtMillis: MutableState<Long> = mutableStateOf(0L)
 ) {
     fun setButtons(value: Byte) {
         button_repeat_left.value = (value and 0x01) != 0.toByte()
@@ -148,8 +152,10 @@ data class CarStatus(
         if (fuelRangeKm.value != other.fuelRangeKm.value)
             fuelRangeKm.value = other.fuelRangeKm.value
 
-        if (odometerKm.value != other.odometerKm.value)
+        // 총 주행거리는 한 번 측정되면 유지: 상대가 0이면(데이터 없음) 덮어쓰지 않는다.
+        if (other.odometerKm.value > 0 && odometerKm.value != other.odometerKm.value) {
             odometerKm.value = other.odometerKm.value
+        }
 
         if (horn.value != other.horn.value) horn.value = other.horn.value
         if (hazard.value != other.hazard.value) hazard.value = other.hazard.value

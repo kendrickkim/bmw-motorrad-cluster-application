@@ -27,6 +27,7 @@ import androidx.compose.ui.text.font.FontWeight
 import com.dooderge.bmw.motorrad.cluster.CarStatus
 import com.dooderge.bmw.motorrad.cluster.R
 import com.dooderge.bmw.motorrad.cluster.ui.screens.fanShape
+import com.dooderge.bmw.motorrad.cluster.ui.theme.ClusterAccentColor
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlin.math.abs
@@ -140,7 +141,8 @@ fun ClusterSpeedRpm(
 								ClusterText(
 									text = "Km/h",
 									fontSize = 50f,
-									fontWeight = FontWeight.Bold
+									fontWeight = FontWeight.Bold,
+									color = ClusterAccentColor
 								)
 							}
 						}
@@ -149,7 +151,8 @@ fun ClusterSpeedRpm(
 						ClusterText(
 							text = "RPM",
 							fontSize = 40f,
-							fontWeight = FontWeight.Bold
+							fontWeight = FontWeight.Bold,
+							color = ClusterAccentColor
 						)
 						var colorRpmNumber = Color.White;
 						if (rpmInner > 11000)

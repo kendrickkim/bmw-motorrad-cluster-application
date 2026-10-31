@@ -1,29 +1,24 @@
 package com.dooderge.bmw.motorrad.cluster.launcher
 
+import com.dooderge.bmw.motorrad.cluster.ui.component.applyClusterImmersiveMode
+
 import android.content.Context
 import android.os.Bundle
-import android.view.View
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -32,11 +27,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
+import com.dooderge.bmw.motorrad.cluster.ui.component.ClusterSideActionButton
+import com.dooderge.bmw.motorrad.cluster.ui.component.ClusterTwoPaneScaffold
 import com.dooderge.bmw.motorrad.cluster.viewmodel.LauncherViewModel
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -48,50 +44,23 @@ class LauncherActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            Row(Modifier.fillMaxSize())
-            {
-                Box(
-                    Modifier.weight(0.8f)
-                )
-                {
-                    LauncherScreen(viewModel)
-
-                }
-                Box(
-                    Modifier
-                        .weight(0.2f)
-                        .fillMaxHeight()
-                        .background(color = Color(0xff333333))
-                        .clickable(onClick = {
-                            finish()
-                        }),
-
-                    contentAlignment = Alignment.Center
-                )
-                {
-                    Text(
-                        text = "Back",
-                        fontWeight = FontWeight.ExtraBold,
-                        fontSize = 15.sp,
-                        color = Color.White
+            ClusterTwoPaneScaffold(
+                content = { LauncherScreen(viewModel) },
+                sideActions = {
+                    ClusterSideActionButton(
+                        label = "Back",
+                        modifier = Modifier.weight(1f),
+                        onClick = { finish() }
                     )
                 }
-            }
-
+            )
         }
         viewModel.getInstalledApps(this)
     }
 
     override fun onResume() {
         super.onResume()
-        window.decorView.systemUiVisibility = (
-                View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-                        or View.SYSTEM_UI_FLAG_FULLSCREEN
-                        or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                        or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                        or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                        or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                )
+        window.applyClusterImmersiveMode()
     }
 }
 
@@ -135,7 +104,6 @@ fun AppListItem(appInfo: AppInfo, onClick: () -> Unit) {
             textAlign = TextAlign.Center,
             color = Color.White,
             modifier = Modifier.padding(top = 8.dp)
-
         )
     }
 }

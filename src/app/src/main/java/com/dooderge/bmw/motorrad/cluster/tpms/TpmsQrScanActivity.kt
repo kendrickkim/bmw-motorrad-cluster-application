@@ -16,6 +16,7 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
 import com.dooderge.bmw.motorrad.cluster.R
+import com.dooderge.bmw.motorrad.cluster.ui.component.applyClusterImmersiveMode
 import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
@@ -120,11 +121,6 @@ class TpmsQrScanActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        @Suppress("DEPRECATION")
-        window.decorView.systemUiVisibility = (
-            View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-                or View.SYSTEM_UI_FLAG_FULLSCREEN
-                or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-            )
+        window.applyClusterImmersiveMode()
     }
 }

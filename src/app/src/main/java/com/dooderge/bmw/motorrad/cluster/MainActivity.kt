@@ -1,5 +1,7 @@
 package com.dooderge.bmw.motorrad.cluster
 
+import com.dooderge.bmw.motorrad.cluster.ui.component.applyClusterImmersiveMode
+
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.BroadcastReceiver
@@ -17,7 +19,6 @@ import android.os.IBinder
 import android.provider.Settings
 import android.util.Log
 import android.view.KeyEvent
-import android.view.View
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -159,6 +160,9 @@ class MainActivity : ComponentActivity() {
             intent.getStringExtra(TpmsService.EXTRA_CONNECTION) ?: "DISCONNECTED"
         carStatus.tpmsStatusMessage.value =
             intent.getStringExtra(TpmsService.EXTRA_STATUS).orEmpty()
+        val lastRead = intent.getLongExtra(TpmsService.EXTRA_LAST_READ_AT, 0L)
+        carStatus.tpmsLastReadAtMillis.value =
+            if (lastRead > 0L) lastRead else SettingPreference.getTpmsLastReadAt(this)
     }
 
     private fun loadTpmsSettingsIntoCarStatus() {
@@ -179,6 +183,8 @@ class MainActivity : ComponentActivity() {
             SettingPreference.getTpmsLastFrontBattery(this)
         carStatus.tpmsRearBatteryPct.value =
             SettingPreference.getTpmsLastRearBattery(this)
+        carStatus.tpmsLastReadAtMillis.value =
+            SettingPreference.getTpmsLastReadAt(this)
     }
 
     var bleService: BleService? = null
@@ -220,16 +226,7 @@ class MainActivity : ComponentActivity() {
         } else {
             bleService?.hideOverlay()
             // 풀스크린 설정
-            window.decorView.systemUiVisibility = (
-                    View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-                            or View.SYSTEM_UI_FLAG_FULLSCREEN
-                            or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                            or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                            or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                            or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                    )
-
-            window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            window.applyClusterImmersiveMode()
 
             checkAndRequestPermissions()
 
@@ -246,17 +243,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         // 풀스크린 설정
-        window.decorView.systemUiVisibility = (
-                View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-                        or View.SYSTEM_UI_FLAG_FULLSCREEN
-                        or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                        or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                        or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                        or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                )
-
-        // 화면 꺼짐 방지
-        window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        window.applyClusterImmersiveMode()
 
         SettingPreference.restoreIgnitionTrip(this, carStatus)
         loadTpmsSettingsIntoCarStatus()

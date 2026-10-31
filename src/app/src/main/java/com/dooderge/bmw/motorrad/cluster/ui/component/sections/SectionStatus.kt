@@ -73,7 +73,9 @@ fun SectionStatus(
                 blinkingENGStatusOn
             }
             val engColor = if (warningOn) colorENGStatusOn else colorOff
-            val cauColor = if (warningOn) colorCAUStatusOn else colorOff
+            // 기존(이그니션 OFF 깜빡임) + 연료량 경고(fuelFault) 시 CAU 점등
+            val cauColor =
+                if (warningOn || carStatus.fuelFault.value) colorCAUStatusOn else colorOff
             if (colorENGStatus != engColor) colorENGStatus = engColor
             if (colorCAUStatus != cauColor) colorCAUStatus = cauColor
             delay(200)
@@ -89,7 +91,7 @@ fun SectionStatus(
     ) {
         Box(
             modifier = Modifier
-                .size(200.designedDp(), 200.designedDp())
+                .size(100.designedDp(), 100.designedDp())
                 .then(
                     if (onClick != null) {
                         Modifier.pointerInput(onClick) {

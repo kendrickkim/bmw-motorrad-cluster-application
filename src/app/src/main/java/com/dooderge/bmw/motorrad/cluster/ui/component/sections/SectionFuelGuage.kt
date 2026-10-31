@@ -11,6 +11,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import com.dooderge.bmw.motorrad.cluster.CarStatus
 import com.dooderge.bmw.motorrad.cluster.ui.component.ClusterText
+import com.dooderge.bmw.motorrad.cluster.ui.component.clusterValueUnitText
+import com.dooderge.bmw.motorrad.cluster.ui.theme.ClusterValueColor
 
 @Composable
 fun SectionFuelGuage(
@@ -20,7 +22,7 @@ fun SectionFuelGuage(
 	/** 구 Direction 슬롯(좁은 영역)용 콤팩트 표시 */
 	compact: Boolean = false
 ) {
-	val lineColor = Color(0xffaaaaaa)
+	val lineColor = ClusterValueColor
 	val lineSize = 75f
 	val distanceSize = lineSize * 0.8f
 
@@ -54,10 +56,9 @@ fun SectionFuelGuage(
 					// 	maxLines = 1
 					// )
 					ClusterText(
-						text = "$rangeKm Km",
+						text = clusterValueUnitText("$rangeKm", " Km", valueColor = lineColor),
 						fontSize = distanceSize * 1.3f,
 						fontWeight = FontWeight.ExtraBold,
-						color = lineColor,
 						softWrap = false,
 						maxLines = 1
 					)
@@ -70,10 +71,9 @@ fun SectionFuelGuage(
 				// 	color = lineColor
 				// )
 				ClusterText(
-					text = "$rangeKm Km",
+					text = clusterValueUnitText("$rangeKm", " Km", valueColor = lineColor),
 					fontSize = 135f * 1.5f,
-					fontWeight = FontWeight.ExtraBold,
-					color = lineColor
+					fontWeight = FontWeight.ExtraBold
 				)
 			}
 		}
