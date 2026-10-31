@@ -16,7 +16,7 @@ import com.dooderge.bmw.motorrad.cluster.R
 import com.dooderge.bmw.motorrad.cluster.SettingPreference
 
 /**
- * LYTPMS Advertise 스캔 서비스.
+ * TPMS Advertise 스캔 서비스.
  * 공식 앱(`BleServiceLY`)과 같이 GATT Connect 없이 Front/Rear 압력 수신.
  */
 class TpmsService : Service() {
@@ -193,7 +193,7 @@ class TpmsService : Service() {
             TirePosition.FRONT -> {
                 SettingPreference.setTpmsFrontSensor(
                     this,
-                    name = "LYTPMS ${sample.sensorIdHex}",
+                    name = "TPMS ${sample.sensorIdHex}",
                     address = sample.sensorIdHex,
                     sensorId = sample.sensorId
                 )
@@ -201,7 +201,7 @@ class TpmsService : Service() {
             TirePosition.REAR -> {
                 SettingPreference.setTpmsRearSensor(
                     this,
-                    name = "LYTPMS ${sample.sensorIdHex}",
+                    name = "TPMS ${sample.sensorIdHex}",
                     address = sample.sensorIdHex,
                     sensorId = sample.sensorId
                 )
@@ -229,14 +229,14 @@ class TpmsService : Service() {
             TirePosition.FRONT ->
                 SettingPreference.setTpmsFrontSensor(
                     this,
-                    label.ifBlank { "LYTPMS $hex" },
+                    label.ifBlank { "TPMS $hex" },
                     hex,
                     sensorId
                 )
             TirePosition.REAR ->
                 SettingPreference.setTpmsRearSensor(
                     this,
-                    label.ifBlank { "LYTPMS $hex" },
+                    label.ifBlank { "TPMS $hex" },
                     hex,
                     sensorId
                 )
@@ -264,7 +264,7 @@ class TpmsService : Service() {
         } else {
             scanner?.startCycling()
         }
-        Log.i(TAG, "LYTPMS continuous scan started")
+        Log.i(TAG, "TPMS continuous scan started")
     }
 
     private fun stopPollingSchedule() {
@@ -307,7 +307,7 @@ class TpmsService : Service() {
                 frontDevice = latestState.frontDevice.copy(
                     connection = TpmsConnectionState.LISTENING,
                     sensorId = sample.sensorId,
-                    name = "LYTPMS",
+                    name = "TPMS",
                     address = sample.sensorIdHex
                 ),
                 statusMessage = "Front ${sample.sensorIdHex} received"
@@ -320,7 +320,7 @@ class TpmsService : Service() {
                 rearDevice = latestState.rearDevice.copy(
                     connection = TpmsConnectionState.LISTENING,
                     sensorId = sample.sensorId,
-                    name = "LYTPMS",
+                    name = "TPMS",
                     address = sample.sensorIdHex
                 ),
                 statusMessage = "Rear ${sample.sensorIdHex} received"

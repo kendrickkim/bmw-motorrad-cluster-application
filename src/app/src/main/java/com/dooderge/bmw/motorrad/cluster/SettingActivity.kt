@@ -14,15 +14,18 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.dooderge.bmw.motorrad.cluster.tpms.TpmsSettingActivity
@@ -34,6 +37,15 @@ import com.dooderge.bmw.motorrad.cluster.ui.theme.clusterSwitchColors
 
 class SettingActivity : ComponentActivity() {
     private val showSpeedGearOverlay = mutableStateOf(false)
+
+    /** 설정 본문(Device/버튼) 공통 높이·글자 크기 */
+    private val contentControlHeight = 40.dp
+    private val contentControlFontSize = 15.sp
+    private val contentButtonFontSize = 15.sp
+    private val contentLabelFontSize = 13.sp
+    private val contentLabelWidth = 108.dp
+    /** 토글 제목은 길 수 있어 더 넓게 */
+    private val contentToggleLabelWidth = 168.dp
 
     @SuppressLint("MissingPermission")
 
@@ -68,14 +80,11 @@ class SettingActivity : ComponentActivity() {
                 mutableStateOf(SettingPreference.isGpsLogging(this))
             }
 
-            // Speed Factor UI 비활성 — 필요 시 복원
-            // var strSpeedFactor by remember {
-            //     mutableStateOf(
-            //         SettingPreference.getWheelRpmToSpeedFactor(
-            //             this
-            //         ).toString()
-            //     )
-            // }
+            var strSpeedFactor by remember {
+                mutableStateOf(
+                    formatSpeedFactor(SettingPreference.getWheelRpmToSpeedFactor(this))
+                )
+            }
 
             LaunchedEffect(Unit) {
                 // 초기 선택된 장치 이름 설정
@@ -100,202 +109,173 @@ class SettingActivity : ComponentActivity() {
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .verticalScroll(rememberScrollState()),
-                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    SettingLabel("Device")
-                                    Box(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .height(56.dp)
-                                            .border(2.dp, Color.Gray)
-                                            .padding(horizontal = 12.dp),
-                                        contentAlignment = Alignment.CenterStart
-                                    ) {
-                                        Text(
-                                            text = selectedDeviceName.ifEmpty { "No device selected" },
-                                            fontSize = 20.sp,
-                                            color = Color.White,
-                                            fontWeight = FontWeight.Medium,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
+                                SettingPairRow(
+                                    left = {
+                                        SettingLabel("Device")
+                                        Box(
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .height(contentControlHeight)
+                                                .border(2.dp, Color.Gray)
+                                                .padding(horizontal = 8.dp),
+                                            contentAlignment = Alignment.CenterStart
+                                        ) {
+                                            Text(
+                                                text = selectedDeviceName.ifEmpty { "No device selected" },
+                                                fontSize = contentControlFontSize,
+                                                color = Color.White,
+                                                fontWeight = FontWeight.Medium,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        SettingContentButton(
+                                            label = "Select",
+                                            onClick = { showDialog = true }
                                         )
+                                    },
+                                    right = {
+                                        SettingLabel("Speed Factor")
+                                        Box(
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .height(contentControlHeight)
+                                                .border(2.dp, Color.Gray)
+                                                .padding(horizontal = 8.dp),
+                                            contentAlignment = Alignment.CenterStart
+                                        ) {
+                                            BasicTextField(
+                                                value = strSpeedFactor,
+                                                onValueChange = { strSpeedFactor = it },
+                                                singleLine = true,
+                                                cursorBrush = SolidColor(Color(0xFF4376A1)),
+                                                textStyle = TextStyle(
+                                                    fontSize = contentControlFontSize,
+                                                    color = Color.White,
+                                                    fontWeight = FontWeight.Medium
+                                                ),
+                                                modifier = Modifier.fillMaxWidth()
+                                            )
+                                        }
                                     }
-                                    Spacer(modifier = Modifier.width(12.dp))
-                                    Button(
-                                        onClick = { showDialog = true },
-                                        modifier = Modifier.height(56.dp),
-                                        shape = RoundedCornerShape(10.dp),
-                                        colors = ButtonDefaults.buttonColors(
-                                            containerColor = Color.White,
-                                            contentColor = Color.Black
-                                        )
-                                    ) {
-                                        Text(
-                                            text = "Select",
-                                            fontSize = 18.sp,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    }
-                                }
-                                // Speed Factor 항목 제거 (주석 유지)
-                                // Row(verticalAlignment = Alignment.CenterVertically) {
-                                //     SettingLabel("Speed Factor")
-                                //     TextField(
-                                //         value = strSpeedFactor,
-                                //         onValueChange = { strSpeedFactor = it },
-                                //         singleLine = true,
-                                //         modifier = Modifier.weight(1f),
-                                //         colors = TextFieldDefaults.colors(
-                                //             focusedContainerColor = Color.Black,
-                                //             unfocusedContainerColor = Color.Black,
-                                //             focusedIndicatorColor = Color(0xFF4376A1),
-                                //             unfocusedIndicatorColor = Color(0xFF666666),
-                                //             cursorColor = Color(0xFF4376A1),
-                                //             focusedTextColor = Color.White,
-                                //             unfocusedTextColor = Color.White
-                                //         ),
-                                //         textStyle = TextStyle(
-                                //             fontSize = 20.sp,
-                                //             color = Color.White,
-                                //             fontWeight = FontWeight.Medium
-                                //         )
-                                //     )
-                                // }
-                                Column(
-                                    verticalArrangement = Arrangement.spacedBy(2.dp)
-                                ) {
-                                    SettingSwitchRow(
-                                        label = "LIN Test",
-                                        checked = linTestEnabled,
-                                        onCheckedChange = {
-                                            linTestEnabled = it
-                                            SettingPreference.setLinTestEnabled(
-                                                this@SettingActivity,
-                                                it
-                                            )
-                                        }
-                                    )
-                                    SettingSwitchRow(
-                                        label = "Speed / Gear Overlay",
-                                        checked = showSpeedGearOverlay.value,
-                                        onCheckedChange = { checked ->
-                                            showSpeedGearOverlay.value = checked
-                                            BleService.setOverlayPreview(checked)
-                                        }
-                                    )
-                                    SettingSwitchRow(
-                                        label = "Use Large Overlay",
-                                        checked = largeOverlayEnabled,
-                                        onCheckedChange = { checked ->
-                                            largeOverlayEnabled = checked
-                                            SettingPreference.setLargeOverlay(
-                                                this@SettingActivity,
-                                                checked
-                                            )
-                                            BleService.setLargeOverlay(checked)
-                                        }
-                                    )
-                                    SettingSwitchRow(
-                                        label = "GPS Logging",
-                                        checked = gpsLogging,
-                                        onCheckedChange = { checked ->
-                                            gpsLogging = checked
-                                            SettingPreference.setGpsLogging(
-                                                this@SettingActivity,
-                                                checked
-                                            )
-                                            BleService.setGpsLogging(checked)
-                                        }
-                                    )
-                                    SettingSwitchRow(
-                                        label = "LIN Logging",
-                                        checked = linLogging,
-                                        onCheckedChange = { checked ->
-                                            linLogging = checked
-                                            SettingPreference.setLinLogging(
-                                                this@SettingActivity,
-                                                checked
-                                            )
-                                            BleService.setLinLogging(checked)
-                                        }
-                                    )
-                                }
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    SettingLabel("TPMS")
-                                    Button(
-                                        onClick = {
-                                            startActivity(
-                                                Intent(
+                                )
+                                SettingPairRow(
+                                    left = {
+                                        SettingSwitchRow(
+                                            label = "LIN Test",
+                                            checked = linTestEnabled,
+                                            onCheckedChange = {
+                                                linTestEnabled = it
+                                                SettingPreference.setLinTestEnabled(
                                                     this@SettingActivity,
-                                                    TpmsSettingActivity::class.java
+                                                    it
                                                 )
-                                            )
-                                        },
-                                        modifier = Modifier.height(56.dp),
-                                        shape = RoundedCornerShape(10.dp),
-                                        colors = ButtonDefaults.buttonColors(
-                                            containerColor = Color.White,
-                                            contentColor = Color.Black
+                                            }
                                         )
-                                    ) {
-                                        Text(
-                                            text = "Settings",
-                                            fontSize = 18.sp,
-                                            fontWeight = FontWeight.Bold
+                                    },
+                                    right = {
+                                        SettingSwitchRow(
+                                            label = "Speed / Gear Overlay",
+                                            checked = showSpeedGearOverlay.value,
+                                            onCheckedChange = { checked ->
+                                                showSpeedGearOverlay.value = checked
+                                                BleService.setOverlayPreview(checked)
+                                            }
                                         )
                                     }
-                                }
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    SettingLabel("View Log")
-                                    Button(
-                                        onClick = {
-                                            startActivity(
-                                                LogListActivity.intent(
+                                )
+                                SettingPairRow(
+                                    left = {
+                                        SettingSwitchRow(
+                                            label = "Use Large Overlay",
+                                            checked = largeOverlayEnabled,
+                                            onCheckedChange = { checked ->
+                                                largeOverlayEnabled = checked
+                                                SettingPreference.setLargeOverlay(
                                                     this@SettingActivity,
-                                                    LogKind.LIN
+                                                    checked
                                                 )
-                                            )
-                                        },
-                                        modifier = Modifier.height(56.dp),
-                                        shape = RoundedCornerShape(10.dp),
-                                        colors = ButtonDefaults.buttonColors(
-                                            containerColor = Color.White,
-                                            contentColor = Color.Black
+                                                BleService.setLargeOverlay(checked)
+                                            }
                                         )
-                                    ) {
-                                        Text(
-                                            text = "LIN",
-                                            fontSize = 18.sp,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    }
-                                    Button(
-                                        onClick = {
-                                            startActivity(
-                                                LogListActivity.intent(
+                                    },
+                                    right = {
+                                        SettingSwitchRow(
+                                            label = "GPS Logging",
+                                            checked = gpsLogging,
+                                            onCheckedChange = { checked ->
+                                                gpsLogging = checked
+                                                SettingPreference.setGpsLogging(
                                                     this@SettingActivity,
-                                                    LogKind.GPS
+                                                    checked
                                                 )
-                                            )
-                                        },
-                                        modifier = Modifier.height(56.dp),
-                                        shape = RoundedCornerShape(10.dp),
-                                        colors = ButtonDefaults.buttonColors(
-                                            containerColor = Color.White,
-                                            contentColor = Color.Black
-                                        )
-                                    ) {
-                                        Text(
-                                            text = "GPS",
-                                            fontSize = 18.sp,
-                                            fontWeight = FontWeight.Bold
+                                                BleService.setGpsLogging(checked)
+                                            }
                                         )
                                     }
-                                }
+                                )
+                                SettingPairRow(
+                                    left = {
+                                        SettingSwitchRow(
+                                            label = "LIN Logging",
+                                            checked = linLogging,
+                                            onCheckedChange = { checked ->
+                                                linLogging = checked
+                                                SettingPreference.setLinLogging(
+                                                    this@SettingActivity,
+                                                    checked
+                                                )
+                                                BleService.setLinLogging(checked)
+                                            }
+                                        )
+                                    },
+                                    right = { }
+                                )
+                                SettingPairRow(
+                                    left = {
+                                        SettingLabel("TPMS")
+                                        SettingContentButton(
+                                            label = "Settings",
+                                            onClick = {
+                                                startActivity(
+                                                    Intent(
+                                                        this@SettingActivity,
+                                                        TpmsSettingActivity::class.java
+                                                    )
+                                                )
+                                            }
+                                        )
+                                    },
+                                    right = {
+                                        SettingLabel("View Log")
+                                        SettingContentButton(
+                                            label = "LIN",
+                                            onClick = {
+                                                startActivity(
+                                                    LogListActivity.intent(
+                                                        this@SettingActivity,
+                                                        LogKind.LIN
+                                                    )
+                                                )
+                                            }
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        SettingContentButton(
+                                            label = "GPS",
+                                            onClick = {
+                                                startActivity(
+                                                    LogListActivity.intent(
+                                                        this@SettingActivity,
+                                                        LogKind.GPS
+                                                    )
+                                                )
+                                            }
+                                        )
+                                    }
+                                )
                             }
                         },
                         sideActions = {
@@ -308,6 +288,13 @@ class SettingActivity : ComponentActivity() {
                                         deviceName = selectedDeviceName,
                                         address = selectedDeviceAddress
                                     )
+                                    strSpeedFactor.toFloatOrNull()?.takeIf { it > 0f }?.let { factor ->
+                                        SettingPreference.setWheelRpmToSpeedFactor(
+                                            this@SettingActivity,
+                                            factor
+                                        )
+                                        BleService.applySpeedFactor(factor)
+                                    }
                                     finish()
                                 }
                             )
@@ -380,42 +367,93 @@ class SettingActivity : ComponentActivity() {
         }
     }
 
-    /** 설정 행 라벨(고정 폭). */
+    /** Speed Factor 표시용 문자열(불필요한 꼬리 0 제거). */
+    private fun formatSpeedFactor(factor: Float): String {
+        val text = String.format(java.util.Locale.US, "%.4f", factor)
+        return text.trimEnd('0').trimEnd('.')
+    }
+
+    /** 한 행에 설정 2칸(좌/우). */
     @Composable
-    private fun SettingLabel(text: String) {
+    private fun SettingPairRow(
+        left: @Composable RowScope.() -> Unit,
+        right: @Composable RowScope.() -> Unit,
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(
+                modifier = Modifier.weight(1f),
+                verticalAlignment = Alignment.CenterVertically,
+                content = left
+            )
+            Row(
+                modifier = Modifier.weight(1f),
+                verticalAlignment = Alignment.CenterVertically,
+                content = right
+            )
+        }
+    }
+
+    /** 설정 행 라벨(2열 배치용 작은 글자). */
+    @Composable
+    private fun SettingLabel(
+        text: String,
+        width: Dp = contentLabelWidth,
+    ) {
         Text(
             text = text,
-            fontSize = 18.sp,
-            fontWeight = FontWeight.ExtraBold,
+            fontSize = contentLabelFontSize,
+            fontWeight = FontWeight.Bold,
             color = Color.White,
-            modifier = Modifier.width(140.dp)
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            softWrap = false,
+            modifier = Modifier.width(width)
         )
     }
 
-    /** 라벨 + Switch 한 줄(토글 블록 전용 좁은 행 높이). */
+    /** 설정 본문용 낮은 높이 버튼(Device/TPMS/View Log). */
     @Composable
-    private fun SettingSwitchRow(
+    private fun SettingContentButton(
+        label: String,
+        onClick: () -> Unit,
+    ) {
+        Button(
+            onClick = onClick,
+            modifier = Modifier.height(contentControlHeight),
+            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
+            shape = RoundedCornerShape(8.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color.White,
+                contentColor = Color.Black
+            )
+        ) {
+            Text(
+                text = label,
+                fontSize = contentButtonFontSize,
+                fontWeight = FontWeight.Bold
+            )
+        }
+    }
+
+    /** 라벨 + Switch 한 칸(페어 행의 좌/우). */
+    @Composable
+    private fun RowScope.SettingSwitchRow(
         label: String,
         checked: Boolean,
         onCheckedChange: (Boolean) -> Unit,
     ) {
-        Row(
-            modifier = Modifier.height(40.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = label,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.ExtraBold,
-                color = Color.White,
-                modifier = Modifier.weight(1f)
-            )
-            Switch(
-                checked = checked,
-                onCheckedChange = onCheckedChange,
-                colors = clusterSwitchColors()
-            )
-        }
+        SettingLabel(label, width = contentToggleLabelWidth)
+        Spacer(modifier = Modifier.weight(1f))
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            colors = clusterSwitchColors(),
+            modifier = Modifier.height(contentControlHeight)
+        )
     }
 
     override fun onPause() {

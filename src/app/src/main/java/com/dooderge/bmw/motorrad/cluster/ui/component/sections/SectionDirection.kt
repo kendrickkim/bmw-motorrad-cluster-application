@@ -105,7 +105,7 @@ fun SectionDirection(
 private fun HeadingArrow(bearingDegrees: Float) {
     Canvas(
         modifier = Modifier
-            .size(100.designedDp())
+            .size(70.designedDp())
             .rotate(bearingDegrees)
     ) {
         val path = Path().apply {

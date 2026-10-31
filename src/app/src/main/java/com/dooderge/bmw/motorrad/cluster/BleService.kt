@@ -78,7 +78,16 @@ class BleService : Service() {
             "com.dooderge.bmw.motorrad.cluster.LIN_LOG_STATE"
         const val EXTRA_LIN_LOGGING = "logging"
 
-        public var WHEEL_RPM_TO_SPEED = 0.884f
+        /** Settings Speed Factor 런타임 값(기본 0.14). */
+        @JvmField
+        var WHEEL_RPM_TO_SPEED = SettingPreference.DEFAULT_SPEED_FACTOR
+
+        /** prefs → LIN/BLE 속도 환산에 즉시 반영. */
+        fun applySpeedFactor(factor: Float) {
+            if (factor <= 0f) return
+            WHEEL_RPM_TO_SPEED = factor
+            LinFrame.setRearRpmToKmh(factor)
+        }
 
         @Volatile
         private var instance: BleService? = null
@@ -192,7 +201,7 @@ class BleService : Service() {
         startForeground(NOTIFICATION_ID, notification)
 
         // read wheel RPM to speed factor from settings
-        WHEEL_RPM_TO_SPEED = SettingPreference.getWheelRpmToSpeedFactor(this)
+        applySpeedFactor(SettingPreference.getWheelRpmToSpeedFactor(this))
         SettingPreference.restoreLastOdometer(this, currentCarStatus)
         if (SettingPreference.isLinLogging(this)) {
             linDataLogger.start()
@@ -593,13 +602,13 @@ class BleService : Service() {
         ui.range.text = overlayValueWithUnit("${status.fuelRangeKm.value}", " km")
 
         val detailGray = Color.rgb(0x80, 0x80, 0x80)
-        if (status.linCapturePlaying.value) {
-            // 메인 시뮬레이션(SectionTirePressure)과 동일 표시
-            ui.frontPressure.text = SIM_TIRE_PRESSURE
-            ui.rearPressure.text = SIM_TIRE_PRESSURE
-            ui.frontDetail.text = overlayValueWithUnit("99.8", " °C", detailGray)
-            ui.rearDetail.text = overlayValueWithUnit("99.8", " °C", detailGray)
-        } else {
+        // LIN 테스트 중 TPMS 고정값 — 테스트용 복원 시 아래 주석 해제
+        // if (status.linCapturePlaying.value) {
+        //     ui.frontPressure.text = SIM_TIRE_PRESSURE
+        //     ui.rearPressure.text = SIM_TIRE_PRESSURE
+        //     ui.frontDetail.text = overlayValueWithUnit("99.8", " °C", detailGray)
+        //     ui.rearDetail.text = overlayValueWithUnit("99.8", " °C", detailGray)
+        // } else {
             val unit = SettingPreference.getTpmsUnit(this)
             val frontRaw = SettingPreference.getTpmsLastFrontPressure(this)
             val rearRaw = SettingPreference.getTpmsLastRearPressure(this)
@@ -609,7 +618,7 @@ class BleService : Service() {
             ui.rearPressure.text = formatOverlayPressure(rearRaw, unit)
             ui.frontDetail.text = formatOverlayTireTemp(frontTemp, detailGray)
             ui.rearDetail.text = formatOverlayTireTemp(rearTemp, detailGray)
-        }
+        // }
     }
 
     /** 수치(기본 흰색) + 단위(ClusterAccentColor) */

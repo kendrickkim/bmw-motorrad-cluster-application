@@ -24,11 +24,11 @@ ESP32에서 BLE로 받은 차량 정보를 표시하는 **스마트폰 클러스
 
 ## 사용 TPMS 장치
 
-이 앱의 TPMS 기능은 **LYTPMS 1.0.3** 공식 앱(`com.zl.dev.tire`)과 동일한 **Advertise-only** 프로토콜을 사용한다.
+이 앱의 TPMS 기능은 **TPMS 1.0.3** 공식 앱(`com.zl.dev.tire`)과 동일한 **Advertise-only** 프로토콜을 사용한다.
 
 | 항목 | 내용 |
 |---|---|
-| 공식 앱 | LYTPMS 1.0.3 (Wicarlink) |
+| 공식 앱 | TPMS 1.0.3 (Wicarlink) |
 | 통신 | BLE Advertise 스캔 (GATT Connect **없음**) |
 | 식별 | AD 프리픽스 `0201060303B0FB` (Flags + UUID `FBB0`) |
 | 압력 | `raw * 3.144` kPa |
@@ -37,7 +37,7 @@ ESP32에서 BLE로 받은 차량 정보를 표시하는 **스마트폰 클러스
 
 설정 화면에서 **Settings → TPMS**로 진입해 센서 스캔·ID 바인딩, Front/Rear 압력·온도를 확인한다. ESP32 클러스터 BLE(`BleService`)와는 **별도** 서비스(`TpmsService`)이다.
 
-프로토콜 상세: [docs/lytpms-ble-analysis.md](docs/lytpms-ble-analysis.md)
+프로토콜 상세: [docs/tpms-ble-analysis.md](docs/tpms-ble-analysis.md)
 
 ## 구조
 
@@ -53,7 +53,7 @@ ESP32 BLE notify (0x180A / 0x2A01)
         ├─ 속도, RPM, 기어, 전압, 이그니션, …
         └─ 오버레이 (선택)
 
-LYTPMS Advertise (FBB0 / 0201060303B0FB)
+TPMS Advertise (FBB0 / 0201060303B0FB)
         │
         ▼
    TpmsService (포그라운드)
@@ -75,7 +75,7 @@ Wonder Wheel / HID / 가상 키
 | 언어 | Kotlin, Java 17 |
 | UI | Jetpack Compose + Material 3 |
 | DI | Hilt |
-| BLE | ESP32 `BMW-WWC-…` 광고 + (선택) LYTPMS Advertise (`FBB0`) |
+| BLE | ESP32 `BMW-WWC-…` 광고 + (선택) TPMS Advertise (`FBB0`) |
 | 권한 | Bluetooth, 위치(레거시 스캔), 알림, 오버레이, 접근성 등 |
 
 ## 빌드
@@ -100,7 +100,7 @@ gradlew.bat :app:assembleDebug
 4. (선택) **접근성 → BMW Motorrad Cluster** 활성화.
 5. (선택) 기본 홈 앱으로 지정.
 6. 표시 속도가 다르면 **휠 RPM → 속도** 계수를 조정합니다 (코드 기본값 약 `0.884`).
-7. (선택) **Settings → TPMS**에서 LYTPMS 센서를 스캔하고 Front/Rear ID를 바인딩합니다.
+7. (선택) **Settings → TPMS**에서 TPMS 센서를 스캔하고 Front/Rear ID를 바인딩합니다.
 
 ## BLE LIN 프레임 파싱
 
@@ -145,7 +145,7 @@ bmw-motorrad-cluster-application/
         ├── BleService.kt
         ├── CarStatus.kt
         ├── SettingActivity.kt
-        ├── tpms/                 # LYTPMS Advertise TPMS
+        ├── tpms/                 # TPMS Advertise TPMS
         ├── launcher/
         └── ui/
 ```
@@ -154,7 +154,7 @@ bmw-motorrad-cluster-application/
 
 - LIN 분석: [LIN_ANALYSIS.md](https://github.com/kendrickkim/bmw-motorrad-cluster-linbus/blob/main/lin_analysis/LIN_ANALYSIS.md)
 - 펌웨어: [bmw-motorrad-cluster-esp32](https://github.com/kendrickkim/bmw-motorrad-cluster-esp32)
-- TPMS 분석: [docs/lytpms-ble-analysis.md](docs/lytpms-ble-analysis.md)
+- TPMS 분석: [docs/tpms-ble-analysis.md](docs/tpms-ble-analysis.md)
 
 ## 참고
 

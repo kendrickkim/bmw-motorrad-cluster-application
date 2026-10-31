@@ -13,7 +13,15 @@ object LinFrame {
     private const val ID_ENGINE = 0xE2
     private const val ID_VOLTAGE = 0xE9
 
-    private const val REAR_RPM_TO_KMH = 0.14f
+    /** Settings Speed Factor — BleService가 prefs에서 로드해 갱신한다. */
+    @Volatile
+    var rearRpmToKmh: Float = SettingPreference.DEFAULT_SPEED_FACTOR
+        private set
+
+    /** 런타임 Speed Factor 적용(설정 저장/서비스 시작 시). */
+    fun setRearRpmToKmh(factor: Float) {
+        if (factor > 0f) rearRpmToKmh = factor
+    }
 
     const val ASC_UNKNOWN = -1
     const val ASC_INTERVENTION = 1
@@ -123,7 +131,7 @@ object LinFrame {
         val speedAccurate = speedLow != 0xFF && (speedHighAndRange and 0x0F) != 0x0F
         if (status.isIgnitionOn.value && speedAccurate) {
             val rearWheelRpm = speedLow or ((speedHighAndRange and 0x0F) shl 8)
-            status.speed.value = (rearWheelRpm * REAR_RPM_TO_KMH).toInt()
+            status.speed.value = (rearWheelRpm * rearRpmToKmh).toInt()
         }
 
         val rangeAccurate = ((speedHighAndRange ushr 4) and 0x0F) != 0x0F && rangeRest != 0xFF

@@ -1,7 +1,7 @@
 package com.dooderge.bmw.motorrad.cluster.tpms
 
 /**
- * LYTPMS Advertise 프로토콜 헬퍼.
+ * TPMS Advertise 프로토콜 헬퍼.
  * GATT Write/Notify 없음 — 로컬 바인딩·단위 변환만.
  *
  * 센서 ID는 공식 앱과 동일하게 **6자리 hex 문자열**(예: `CCBBAA`)을
@@ -71,7 +71,7 @@ object TpmsProtocol {
         }
     }
 
-    /** LYTPMS 6hex ID → int (공식 앱 `TireBean.ID` 문자열과 동일) */
+    /** TPMS 6hex ID → int (공식 앱 `TireBean.ID` 문자열과 동일) */
     fun hex6ToSensorId(hex6: String): Int {
         val cleaned = hex6.trim().replace(" ", "").uppercase()
         require(cleaned.length == 6 && cleaned.all { it in "0123456789ABCDEF" }) {
@@ -110,7 +110,7 @@ object TpmsProtocol {
 }
 
 /**
- * LYTPMS QR / 수동 입력:
+ * TPMS QR / 수동 입력:
  * - 단일 6hex 센서 ID (공식 앱과 동일)
  * - `HHHHHH&HHHHHH` (Front&Rear)
  */

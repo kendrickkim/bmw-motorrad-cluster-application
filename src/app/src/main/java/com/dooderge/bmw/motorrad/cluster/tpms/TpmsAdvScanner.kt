@@ -12,7 +12,7 @@ import android.os.Looper
 import android.util.Log
 
 /**
- * LYTPMS 공식 앱(`BaseTireBleService`)과 동일한 Advertise 스캔.
+ * TPMS 공식 앱(`BaseTireBleService`)과 동일한 Advertise 스캔.
  *
  * - 무필터 LE scan (`ScanFilter` empty)
  * - `SCAN_MODE_LOW_LATENCY`
@@ -173,7 +173,7 @@ class TpmsAdvScanner(
         mainHandler.post {
             onSample(sample)
             val device = ScannedTpmsDevice(
-                name = result.scanRecord?.deviceName ?: "LYTPMS",
+                name = result.scanRecord?.deviceName ?: "TPMS",
                 address = sample.macAddress.ifBlank {
                     result.device?.address.orEmpty()
                 },

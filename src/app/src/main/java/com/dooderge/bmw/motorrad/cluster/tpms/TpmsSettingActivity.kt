@@ -61,8 +61,8 @@ import com.dooderge.bmw.motorrad.cluster.ui.theme.ClusterSideButtonContainerColo
 import com.dooderge.bmw.motorrad.cluster.ui.theme.clusterSwitchColors
 
 /**
- * LYTPMS 설정: Advertise 스캔으로 센서 발견 → 6hex ID 바인딩.
- * GATT Connect / Write 없음 (공식 LYTPMS 앱과 동일).
+ * TPMS 설정: Advertise 스캔으로 센서 발견 → 6hex ID 바인딩.
+ * GATT Connect / Write 없음 (공식 TPMS 앱과 동일).
  */
 class TpmsSettingActivity : ComponentActivity() {
     private var tpmsService: TpmsService? = null
@@ -169,13 +169,13 @@ class TpmsSettingActivity : ComponentActivity() {
             fun applyQr(raw: String, target: TirePosition) {
                 when (val payload = TpmsQrParser.parse(raw)) {
                     is TpmsQrPayload.SensorHexId -> {
-                        tpmsService?.bindSensorId(target, payload.sensorId, "LYTPMS ${payload.hex}")
+                        tpmsService?.bindSensorId(target, payload.sensorId, "TPMS ${payload.hex}")
                         registerHint = "Bound: ${payload.hex}"
                         Toast.makeText(this, registerHint, Toast.LENGTH_SHORT).show()
                     }
                     is TpmsQrPayload.MultiSensorIds -> {
                         payload.ids.forEach { (slot, id) ->
-                            tpmsService?.bindSensorId(slot, id, "LYTPMS")
+                            tpmsService?.bindSensorId(slot, id, "TPMS")
                         }
                         registerHint = "QR bound ${payload.ids.size} sensors"
                         Toast.makeText(this, registerHint, Toast.LENGTH_SHORT).show()

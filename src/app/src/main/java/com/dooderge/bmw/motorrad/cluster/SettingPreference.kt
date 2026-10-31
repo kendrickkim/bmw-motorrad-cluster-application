@@ -85,14 +85,19 @@ class SettingPreference private constructor() {
                 .edit().putBoolean(LARGE_OVERLAY_KEY, enabled).apply()
         }
 
+        /** LIN/BLE 휠 RPM → km/h 환산 계수 기본값 */
+        const val DEFAULT_SPEED_FACTOR = 0.14f
+
+        /** Speed Factor 저장. */
         fun setWheelRpmToSpeedFactor(context: Context, factor: Float) {
             val pref = prefs(context)
             pref.edit().putFloat("wheelRpmToSpeedFactor", factor).apply()
         }
 
+        /** Speed Factor 조회. 미저장 시 [DEFAULT_SPEED_FACTOR]. */
         fun getWheelRpmToSpeedFactor(context: Context): Float {
             val pref = prefs(context)
-            return pref.getFloat("wheelRpmToSpeedFactor", BleService.WHEEL_RPM_TO_SPEED)
+            return pref.getFloat("wheelRpmToSpeedFactor", DEFAULT_SPEED_FACTOR)
         }
 
         fun setLinTestEnabled(context: Context, enabled: Boolean) {

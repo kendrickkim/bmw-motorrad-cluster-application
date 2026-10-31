@@ -24,11 +24,11 @@ Jetpack Compose Android app that acts as a **phone-based Motorrad cluster**: rec
 
 ## TPMS hardware used
 
-TPMS support follows the official **LYTPMS 1.0.3** app (`com.zl.dev.tire`) — **Advertise-only**, no GATT connect.
+TPMS support follows the official **TPMS 1.0.3** app (`com.zl.dev.tire`) — **Advertise-only**, no GATT connect.
 
 | Item | Detail |
 |---|---|
-| Companion app | LYTPMS 1.0.3 (Wicarlink) |
+| Companion app | TPMS 1.0.3 (Wicarlink) |
 | Transport | BLE Advertise scan (no GATT) |
 | Identity | AD prefix `0201060303B0FB` (Flags + UUID `FBB0`) |
 | Pressure | `raw * 3.144` kPa |
@@ -37,7 +37,7 @@ TPMS support follows the official **LYTPMS 1.0.3** app (`com.zl.dev.tire`) — *
 
 Open **Settings → TPMS** to scan sensors, bind Front/Rear IDs, and view pressure & temperature. Uses **`TpmsService`**, separate from ESP32 **`BleService`**.
 
-Protocol notes: [docs/lytpms-ble-analysis.md](docs/lytpms-ble-analysis.md).
+Protocol notes: [docs/tpms-ble-analysis.md](docs/tpms-ble-analysis.md).
 
 ## Architecture
 
@@ -53,7 +53,7 @@ ESP32 BLE notify (0x180A / 0x2A01)
         ├─ speed, RPM, gear, voltage, ignition, …
         └─ overlay window (optional)
 
-LYTPMS Advertise (FBB0 / 0201060303B0FB)
+TPMS Advertise (FBB0 / 0201060303B0FB)
         │
         ▼
    TpmsService (foreground)
@@ -75,7 +75,7 @@ Wonder Wheel / HID / virtual keys
 | Language | Kotlin, Java 17 |
 | UI | Jetpack Compose + Material 3 |
 | DI | Hilt |
-| BLE device | ESP32 `BMW-WWC-…` + optional LYTPMS Advertise (`FBB0`) |
+| BLE device | ESP32 `BMW-WWC-…` + optional TPMS Advertise (`FBB0`) |
 | Permissions | Bluetooth (scan/connect), location (legacy scan), notifications, overlay, accessibility (as needed) |
 
 ## Build
@@ -102,7 +102,7 @@ Open `src/` in Android Studio for the usual IDE workflow.
 4. (Optional) Enable **Accessibility → BMW Motorrad Cluster** for `VirtualKeyService`.
 5. (Optional) Set as default home app if you want launcher behavior.
 6. Tune **wheel RPM → speed** factor if indicated speed does not match the bike (default in code ~`0.884`; also stored in preferences).
-7. (Optional) In **Settings → TPMS**, scan LYTPMS sensors and bind Front/Rear IDs.
+7. (Optional) In **Settings → TPMS**, scan TPMS sensors and bind Front/Rear IDs.
 
 ## BLE LIN frame parsing
 
@@ -157,7 +157,7 @@ bmw-motorrad-cluster-application/
                 ├── CarStatus.kt
                 ├── VirtualKeyService.kt
                 ├── SettingPreference.kt
-                ├── tpms/         # LYTPMS Advertise TPMS
+                ├── tpms/         # TPMS Advertise TPMS
                 ├── launcher/
                 ├── viewmodel/
                 └── ui/           # Compose screens & cluster widgets
@@ -167,7 +167,7 @@ bmw-motorrad-cluster-application/
 
 - LIN decode: [LIN_ANALYSIS.md](https://github.com/kendrickkim/bmw-motorrad-cluster-linbus/blob/main/lin_analysis/LIN_ANALYSIS.md)
 - Firmware: [bmw-motorrad-cluster-esp32](https://github.com/kendrickkim/bmw-motorrad-cluster-esp32)
-- TPMS analysis: [docs/lytpms-ble-analysis.md](docs/lytpms-ble-analysis.md)
+- TPMS analysis: [docs/tpms-ble-analysis.md](docs/tpms-ble-analysis.md)
 
 ## Notes
 

@@ -39,54 +39,40 @@ fun SectionTirePressure(
     alignment: Alignment = Alignment.TopStart,
     modifier: Modifier = Modifier
 ) {
-    val simulating = carStatus.linCapturePlaying.value
+    // LIN 테스트 중 TPMS 고정값 — 테스트용 복원 시 아래 주석 해제
+    // val simulating = carStatus.linCapturePlaying.value
     val unit = TpmsPressureUnit.fromLabel(carStatus.tpmsUnitLabel.value)
     val minKpa = carStatus.tpmsPressureMinKpa.value
     val maxKpa = carStatus.tpmsPressureMaxKpa.value
     val zone = remember { ZoneId.systemDefault() }
 
-    val frontAlarm = !simulating && TpmsProtocol.isPressureOutOfRange(
+    val frontAlarm = /* !simulating && */ TpmsProtocol.isPressureOutOfRange(
         carStatus.tpmsFrontPressureRaw.value,
         minKpa,
         maxKpa
     )
-    val rearAlarm = !simulating && TpmsProtocol.isPressureOutOfRange(
+    val rearAlarm = /* !simulating && */ TpmsProtocol.isPressureOutOfRange(
         carStatus.tpmsRearPressureRaw.value,
         minKpa,
         maxKpa
     )
 
-    val frontP = if (simulating) {
-        clusterValueUnitText(SIM_PRESSURE_VALUE, SIM_PRESSURE_UNIT)
-    } else {
-        formatPressureAnnotated(carStatus.tpmsFrontPressureRaw.value, unit)
-    }
-    val rearP = if (simulating) {
-        clusterValueUnitText(SIM_PRESSURE_VALUE, SIM_PRESSURE_UNIT)
-    } else {
-        formatPressureAnnotated(carStatus.tpmsRearPressureRaw.value, unit)
-    }
-    val frontMeta = if (simulating) {
-        SIM_META
-    } else {
-        formatTempBattery(
-            carStatus.tpmsFrontTempC.value,
-            carStatus.tpmsFrontBatteryPct.value
-        )
-    }
-    val rearMeta = if (simulating) {
-        SIM_META
-    } else {
-        formatTempBattery(
-            carStatus.tpmsRearTempC.value,
-            carStatus.tpmsRearBatteryPct.value
-        )
-    }
-    val lastRead = if (simulating) {
-        "--"
-    } else {
-        formatLastReadAt(carStatus.tpmsLastReadAtMillis.value, zone)
-    }
+    // if (simulating) clusterValueUnitText(SIM_PRESSURE_VALUE, SIM_PRESSURE_UNIT) else
+    val frontP = formatPressureAnnotated(carStatus.tpmsFrontPressureRaw.value, unit)
+    // if (simulating) clusterValueUnitText(SIM_PRESSURE_VALUE, SIM_PRESSURE_UNIT) else
+    val rearP = formatPressureAnnotated(carStatus.tpmsRearPressureRaw.value, unit)
+    // if (simulating) SIM_META else
+    val frontMeta = formatTempBattery(
+        carStatus.tpmsFrontTempC.value,
+        carStatus.tpmsFrontBatteryPct.value
+    )
+    // if (simulating) SIM_META else
+    val rearMeta = formatTempBattery(
+        carStatus.tpmsRearTempC.value,
+        carStatus.tpmsRearBatteryPct.value
+    )
+    // if (simulating) "--" else
+    val lastRead = formatLastReadAt(carStatus.tpmsLastReadAtMillis.value, zone)
 
     SectionBox(
         modifier = modifier,

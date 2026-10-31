@@ -1,9 +1,9 @@
-# LYTPMS 1.0.3 BLE 분석
+# TPMS 1.0.3 BLE 분석
 
-- **앱**: LYTPMS `1.0.3` (`com.zl.dev.tire` / Wicarlink `com.wicarlink.zl`)
-- **소스 APK**: `lytpms/LYTPMS 1.0.3.apk` → `base.apk`
-- **디컴파일**: `lytpms/decompiled/`
-- **대상**: LYTPMS / Wicarlink 계열 **Advertise-only** 타이어 센서
+- **앱**: TPMS `1.0.3` (`com.zl.dev.tire` / Wicarlink `com.wicarlink.zl`)
+- **소스 APK**: `reference APK` → `base.apk`
+- **디컴파일**: `decompiled reference/`
+- **대상**: TPMS / Wicarlink 계열 **Advertise-only** 타이어 센서
 
 > TPMS Advanced 오픈소스(Sysgration / Pecham) 레이아웃은 **공식 앱과 다르며 참조하지 않는다.**
 
@@ -17,7 +17,7 @@
 | GATT Connect / Notify / Write | **센서 수신에 사용하지 않음** |
 | 식별 프리픽스 | `0201060303B0FB` (`Flags=0x06` + UUID `FBB0`) |
 | 구현 클래스 | `BleServiceLY` → `BaseTireBleService.handScanResult` |
-| 파서 | `TireBean.parse` + `VerifyUtil.validateCRCLYTPMS` |
+| 파서 | `TireBean.parse` + `VerifyUtil.validateAdvertiseCrc` |
 | 압력 단위 | **kPa** (`raw * 3.144`), PSI = kPa / `6.89476` |
 | 센서 ID | 6 hex 문자열 (예: `CCBBAA`) |
 
@@ -57,7 +57,7 @@
 | `[16..18]` | Sensor ID wire bytes |
 | ID 표시 | `hex([18][17][16])` → 6자리 대문자 hex |
 
-### CRC (`ValidateUtil.validateCRCLYTPMS`)
+### CRC (`ValidateUtil.validateAdvertiseCrc`)
 
 입력: advertise hex `substring(18)` (= byte index 9부터).
 
@@ -81,7 +81,7 @@ ok         = crc16_xmodem(buf) == expected
 ## 4. (참고) 허브용 GATT 상수
 
 `BleUtil` 에 `00002760-08C2-11E1-9073-…` SERVICE/NOTIFY/WRITE 와 `5A A5 …` 명령이 있으나,
-**LYTPMS 센서 수신 경로(`BleServiceLY`)는 Advertise 전용**이다. 클러스터 구현도 Advertise만 사용한다.
+**TPMS 센서 수신 경로(`BleServiceLY`)는 Advertise 전용**이다. 클러스터 구현도 Advertise만 사용한다.
 
 ---
 
@@ -89,8 +89,8 @@ ok         = crc16_xmodem(buf) == expected
 
 | 공식 | 클러스터 |
 |------|----------|
-| `BleServiceLY` | `TpmsAdvParsers.parseLytpms` + `TpmsService` |
+| `BleServiceLY` | `TpmsAdvParsers.parseAdvertise` + `TpmsService` |
 | `TireBean.parse` | 동일 오프셋·공식 |
-| `validateCRCLYTPMS` | `TpmsAdvParsers.validateCrcLytpms` |
+| `validateAdvertiseCrc` | `TpmsAdvParsers.validateAdvertiseCrc` |
 | 60s/2s 스캔 | `TpmsAdvScanner.startCycling` |
 | ID 6hex | `TpmsProtocol.hex6ToSensorId` / `sensorIdToHex` |

@@ -28,7 +28,7 @@ enum class TirePosition(val label: String) {
 }
 
 enum class TpmsSensorBrand {
-    LYTPMS,
+    ADV,
     UNKNOWN
 }
 
@@ -72,7 +72,7 @@ data class TireReading(
 data class WheelDeviceInfo(
     val name: String = "",
     val address: String = "",
-    /** LYTPMS 6hex ID 를 int 로 저장. 미등록은 Int.MIN_VALUE. */
+    /** TPMS 6hex ID 를 int 로 저장. 미등록은 Int.MIN_VALUE. */
     val sensorId: Int = Int.MIN_VALUE,
     val connection: TpmsConnectionState = TpmsConnectionState.DISCONNECTED
 ) {

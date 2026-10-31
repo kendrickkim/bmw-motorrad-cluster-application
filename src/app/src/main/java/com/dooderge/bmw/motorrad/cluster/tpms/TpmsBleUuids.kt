@@ -4,7 +4,7 @@ import android.os.ParcelUuid
 import java.util.UUID
 
 /**
- * LYTPMS Advertise Service UUID.
+ * TPMS Advertise Service UUID.
  * 공식 앱은 raw AD `03 03 B0 FB` (= `0xFBB0`) 프리픽스로 식별한다.
  * GATT Connect 없음.
  */

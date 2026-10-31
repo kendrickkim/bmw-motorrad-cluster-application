@@ -5,7 +5,7 @@ import android.util.Log
 import kotlin.math.roundToInt
 
 /**
- * LYTPMS 1.0.3 (`com.zl.dev.tire.BleServiceLY` / `TireBean.parse`) 기준 Advertise 파서.
+ * TPMS 1.0.3 (`com.zl.dev.tire.BleServiceLY` / `TireBean.parse`) 기준 Advertise 파서.
  *
  * 오픈소스(TPMS Advanced Sysgration/Pecham) 레이아웃은 사용하지 않음.
  */
@@ -16,12 +16,12 @@ object TpmsAdvParsers {
     private const val BLE_ID_HEX = "0201060303B0FB"
 
     fun parse(result: ScanResult): AdvTireSample? {
-        val sample = parseLytpms(result)
+        val sample = parseAdvertise(result)
         if (sample == null) {
             val record = result.scanRecord
             val hex = record?.bytes?.let { TpmsProtocol.bytesToHexCompact(it.take(16).toByteArray()) }
             if (hex != null && (hex.startsWith("0201") || hex.contains("B0FB") || hex.contains("FBB0"))) {
-                Log.d(TAG, "unparsed lytpms-like rssi=${result.rssi} hex=$hex")
+                Log.d(TAG, "unparsed advertise-like rssi=${result.rssi} hex=$hex")
             }
         }
         return sample
@@ -31,9 +31,9 @@ object TpmsAdvParsers {
      * Official flow:
      * 1. `scanRecord.bytes` hex starts with `0201060303B0FB`
      * 2. payload = hex.substring(14, 52) → 19 bytes → [TireBean.parse]
-     * 3. CRC = [VerifyUtil.validateCRCLYTPMS](hex.substring(18))
+     * 3. CRC = [VerifyUtil.validateAdvertiseCrc](hex.substring(18))
      */
-    fun parseLytpms(result: ScanResult): AdvTireSample? {
+    fun parseAdvertise(result: ScanResult): AdvTireSample? {
         val bytes = result.scanRecord?.bytes ?: return null
         if (bytes.size < 26) return null
         val hex = TpmsProtocol.bytesToHexCompact(bytes)
@@ -45,7 +45,7 @@ object TpmsAdvParsers {
         } catch (_: Exception) {
             return null
         }
-        if (!validateCrcLytpms(crcInput)) {
+        if (!validateAdvertiseCrc(crcInput)) {
             Log.d(TAG, "CRC fail hex=${hex.take(52)}")
             return null
         }
@@ -82,7 +82,7 @@ object TpmsAdvParsers {
             battery = batteryPct,
             isAlarm = state == 1 || voltage <= 2.1f,
             rssi = result.rssi,
-            brand = TpmsSensorBrand.LYTPMS,
+            brand = TpmsSensorBrand.ADV,
             macAddress = result.device?.address.orEmpty(),
             voltage = voltage,
             state = state
@@ -96,11 +96,11 @@ object TpmsAdvParsers {
     }
 
     /**
-     * Official `VerifyUtil.validateCRCLYTPMS`.
+     * Official `VerifyUtil.validateAdvertiseCrc`.
      * Input = advertise bytes from index 9 (hex.substring(18)).
      * Note: expected uses **signed** `bArr[8]` subtraction (Java byte → int).
      */
-    fun validateCrcLytpms(bArr: ByteArray): Boolean {
+    fun validateAdvertiseCrc(bArr: ByteArray): Boolean {
         if (bArr.size < 17) return false
         val buf = ByteArray(14)
         System.arraycopy(bArr, 0, buf, 0, 7)
