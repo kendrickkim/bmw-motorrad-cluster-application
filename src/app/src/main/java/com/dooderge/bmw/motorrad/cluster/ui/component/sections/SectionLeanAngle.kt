@@ -28,12 +28,11 @@ import com.dooderge.bmw.motorrad.cluster.ui.component.ClusterConfirmDialog
 import com.dooderge.bmw.motorrad.cluster.ui.component.ClusterText
 import com.dooderge.bmw.motorrad.cluster.ui.component.clusterValueUnitText
 import com.dooderge.bmw.motorrad.cluster.ui.component.designedDp
-import kotlin.math.atan2
 import kotlin.math.round
 
 /**
- * Lean Angle — 롱프레스로 현재 자세를 0° 보정.
- * 시계방향 +, 반시계방향 −, 소수 1자리. 보정값은 SharedPreferences에 저장·복원.
+ * Lean Angle — Rotation Vector 기반.
+ * 롱프레스로 현재 자세를 0° 보정. 시계방향 +, 반시계방향 −, 소수 1자리.
  */
 @Composable
 fun SectionLeanAngle(
@@ -52,20 +51,24 @@ fun SectionLeanAngle(
 
 	DisposableEffect(Unit) {
 		val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
-		val sensor = sensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY)
-			?: sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
+		// GAME_ROTATION_VECTOR: 자력계 미사용 → 차체 금속/모터 간섭에 덜 민감
+		val sensor = sensorManager.getDefaultSensor(Sensor.TYPE_GAME_ROTATION_VECTOR)
+			?: sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)
 		if (sensor == null) {
 			onDispose { }
 		} else {
-			// 디스플레이 회전은 마운트 중 거의 불변 → 이벤트마다 WindowManager 조회하지 않음
 			val rotation = displayRotation(context)
+			val rotationMatrix = FloatArray(9)
+			val remappedMatrix = FloatArray(9)
+			val orientation = FloatArray(3)
 			val listener = object : SensorEventListener {
 				override fun onSensorChanged(event: SensorEvent) {
-					rawDegrees = rawLeanDegrees(
-						gx = event.values[0],
-						gy = event.values[1],
-						gz = event.values[2],
-						displayRotation = rotation
+					rawDegrees = leanDegreesFromRotationVector(
+						vector = event.values,
+						displayRotation = rotation,
+						rotationMatrix = rotationMatrix,
+						remappedMatrix = remappedMatrix,
+						orientation = orientation,
 					)
 				}
 
@@ -84,7 +87,6 @@ fun SectionLeanAngle(
 	val effectiveZero = if (calibrated) zeroOffset else rawDegrees
 	val displayDegrees = wrap180(-(rawDegrees - effectiveZero))
 	val rounded = round(displayDegrees * 10f) / 10f
-	// -0.0 → 0.0 (부호 제거)
 	val displayText = String.format("%.1f", if (rounded == 0f) 0f else rounded)
 
 	SectionBox(
@@ -124,19 +126,32 @@ fun SectionLeanAngle(
 }
 
 /**
- * 디바이스 중력 → lean(°).
- * 화면 관통축(Z) 둘레의 롤만 측정해 앞뒤 피치에는 값이 바뀌지 않는다.
+ * Rotation Vector → 디스플레이 기준 좌표로 remap → lean(°).
+ * landscape/reverseLandscape 장착 시 orientation[1](pitch)이 좌우 lean에 해당.
  */
-@Suppress("UNUSED_PARAMETER")
-private fun rawLeanDegrees(gx: Float, gy: Float, gz: Float, displayRotation: Int): Float {
-	// gz(화면 관통축)는 앞뒤 피치에 섞이므로 lean에 쓰지 않는다.
-	val radians = when (displayRotation) {
-		Surface.ROTATION_90 -> atan2((-gy).toDouble(), (-gx).toDouble())
-		Surface.ROTATION_270 -> atan2(gy.toDouble(), (-gx).toDouble())
-		Surface.ROTATION_180 -> atan2((-gx).toDouble(), (-gy).toDouble())
-		else -> atan2(gx.toDouble(), (-gy).toDouble())
+private fun leanDegreesFromRotationVector(
+	vector: FloatArray,
+	displayRotation: Int,
+	rotationMatrix: FloatArray,
+	remappedMatrix: FloatArray,
+	orientation: FloatArray,
+): Float {
+	SensorManager.getRotationMatrixFromVector(rotationMatrix, vector)
+
+	val (axisX, axisY) = when (displayRotation) {
+		Surface.ROTATION_90 ->
+			SensorManager.AXIS_Y to SensorManager.AXIS_MINUS_X
+		Surface.ROTATION_270 ->
+			SensorManager.AXIS_MINUS_Y to SensorManager.AXIS_X
+		Surface.ROTATION_180 ->
+			SensorManager.AXIS_MINUS_X to SensorManager.AXIS_MINUS_Y
+		else ->
+			SensorManager.AXIS_X to SensorManager.AXIS_Y
 	}
-	return Math.toDegrees(radians).toFloat()
+	SensorManager.remapCoordinateSystem(rotationMatrix, axisX, axisY, remappedMatrix)
+	SensorManager.getOrientation(remappedMatrix, orientation)
+
+	return Math.toDegrees(orientation[1].toDouble()).toFloat()
 }
 
 /** 각도를 (-180, 180] 로 정규화. */
