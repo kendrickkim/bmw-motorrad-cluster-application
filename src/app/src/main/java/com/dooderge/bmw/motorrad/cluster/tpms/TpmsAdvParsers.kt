@@ -15,17 +15,7 @@ object TpmsAdvParsers {
     /** `BaseTireBleService.BLE_ID` — Flags(0x06) + Complete UUID list `FBB0` */
     private const val BLE_ID_HEX = "0201060303B0FB"
 
-    fun parse(result: ScanResult): AdvTireSample? {
-        val sample = parseAdvertise(result)
-        if (sample == null) {
-            val record = result.scanRecord
-            val hex = record?.bytes?.let { TpmsProtocol.bytesToHexCompact(it.take(16).toByteArray()) }
-            if (hex != null && (hex.startsWith("0201") || hex.contains("B0FB") || hex.contains("FBB0"))) {
-                Log.d(TAG, "unparsed advertise-like rssi=${result.rssi} hex=$hex")
-            }
-        }
-        return sample
-    }
+    fun parse(result: ScanResult): AdvTireSample? = parseAdvertise(result)
 
     /**
      * Official flow:
